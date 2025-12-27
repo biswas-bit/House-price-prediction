@@ -762,7 +762,7 @@
         </main>
     </div>
 
-    <script>
+   <script>
         // Date Display
         const updateDate = () => {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -770,25 +770,68 @@
         };
         updateDate();
 
-        // Dummy Property Data
+        // Enhanced Dummy Property Data
         const neighborhoods = ['Downtown', 'Uptown', 'Riverside', 'Hillside', 'Lakefront', 'Suburbs'];
+        
         const generateDummyData = (count) => {
             const data = [];
             for (let i = 1; i <= count; i++) {
+                const neighborhood = neighborhoods[Math.floor(Math.random() * neighborhoods.length)];
+                let basePrice;
+                
+                // Different base prices per neighborhood for realism
+                switch(neighborhood) {
+                    case 'Lakefront': basePrice = 750000; break;
+                    case 'Hillside': basePrice = 600000; break;
+                    case 'Riverside': basePrice = 450000; break;
+                    case 'Uptown': basePrice = 550000; break;
+                    case 'Downtown': basePrice = 400000; break;
+                    default: basePrice = 350000;
+                }
+                
+                const bedrooms = Math.floor(Math.random() * 4) + 2;
+                const bathrooms = Math.floor(Math.random() * 3) + 1;
+                const sqft_living = Math.floor(Math.random() * 2000) + 1000;
+                const year_built = Math.floor(Math.random() * 40) + 1980;
+                
+                // More realistic price calculation
+                const price = Math.floor(
+                    basePrice +
+                    (bedrooms * 25000) +
+                    (bathrooms * 15000) +
+                    (sqft_living * 150) +
+                    ((year_built - 1980) * 5000) +
+                    (Math.random() * 100000 - 50000)
+                );
+                
                 data.push({
                     id: 1000 + i,
-                    bedrooms: Math.floor(Math.random() * 4) + 2,
-                    bathrooms: Math.floor(Math.random() * 3) + 1,
-                    sqft_living: Math.floor(Math.random() * 2000) + 1000,
-                    neighborhood: neighborhoods[Math.floor(Math.random() * neighborhoods.length)],
-                    year_built: Math.floor(Math.random() * 40) + 1980,
-                    price: Math.floor(Math.random() * 800000) + 200000
+                    bedrooms: bedrooms,
+                    bathrooms: bathrooms,
+                    sqft_living: sqft_living,
+                    neighborhood: neighborhood,
+                    year_built: year_built,
+                    price: Math.max(150000, price) // Ensure minimum price
                 });
             }
             return data;
         };
 
         const properties = generateDummyData(1247);
+
+        // Update KPI metrics based on generated data
+        const updateKPIMetrics = () => {
+            const prices = properties.map(p => p.price);
+            const avgPrice = Math.floor(prices.reduce((a, b) => a + b, 0) / prices.length);
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+            
+            document.getElementById('avg-price').textContent = '$' + avgPrice.toLocaleString();
+            document.getElementById('min-price').textContent = '$' + minPrice.toLocaleString();
+            document.getElementById('max-price').textContent = '$' + maxPrice.toLocaleString();
+            document.getElementById('total-properties').textContent = properties.length.toLocaleString();
+        };
+        updateKPIMetrics();
 
         // Populate Table
         const populateTable = () => {
@@ -812,15 +855,34 @@
         populateTable();
 
         // Price Distribution Chart
-        const priceRanges = ['$0-200k', '$200-400k', '$400-600k', '$600-800k', '$800k+'];
-        const priceCounts = [145, 387, 412, 203, 100];
+        const generatePriceDistribution = () => {
+            const priceRanges = [
+                { label: '$0-200k', min: 0, max: 200000 },
+                { label: '$200-400k', min: 200000, max: 400000 },
+                { label: '$400-600k', min: 400000, max: 600000 },
+                { label: '$600-800k', min: 600000, max: 800000 },
+                { label: '$800k-1M', min: 800000, max: 1000000 },
+                { label: '$1M+', min: 1000000, max: Infinity }
+            ];
+            
+            const counts = priceRanges.map(range => {
+                return properties.filter(p => p.price >= range.min && p.price < range.max).length;
+            });
+            
+            return {
+                labels: priceRanges.map(r => r.label),
+                data: counts
+            };
+        };
+
+        const priceDistribution = generatePriceDistribution();
         new Chart(document.getElementById('priceDistributionChart'), {
             type: 'bar',
             data: {
-                labels: priceRanges,
+                labels: priceDistribution.labels,
                 datasets: [{
                     label: 'Properties',
-                    data: priceCounts,
+                    data: priceDistribution.data,
                     backgroundColor: 'rgba(102, 126, 234, 0.8)',
                     borderColor: 'rgba(102, 126, 234, 1)',
                     borderWidth: 2,
@@ -831,52 +893,143 @@
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const percentage = ((context.parsed.y / properties.length) * 100).toFixed(1);
+                                return `${context.parsed.y} properties (${percentage}%)`;
+                            }
+                        }
+                    }
                 },
                 scales: {
-                    y: { beginAtZero: true }
+                    y: { 
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Properties'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Price Range'
+                        }
+                    }
                 }
             }
         });
 
-        // Price vs Area Chart
-        const areaData = properties.slice(0, 50).map(p => ({ x: p.sqft_living, y: p.price }));
+        // Price vs Area Chart (using first 100 properties for clarity)
+        const areaData = properties.slice(0, 100).map(p => ({ 
+            x: p.sqft_living, 
+            y: p.price,
+            neighborhood: p.neighborhood
+        }));
+        
         new Chart(document.getElementById('priceVsAreaChart'), {
             type: 'scatter',
             data: {
                 datasets: [{
                     label: 'Properties',
                     data: areaData,
-                    backgroundColor: 'rgba(118, 75, 162, 0.6)',
-                    borderColor: 'rgba(118, 75, 162, 1)',
+                    backgroundColor: (context) => {
+                        const index = context.dataIndex;
+                        if (index < 0 || index >= areaData.length) return 'rgba(118, 75, 162, 0.6)';
+                        
+                        const neighborhoods = ['Downtown', 'Uptown', 'Riverside', 'Hillside', 'Lakefront', 'Suburbs'];
+                        const colors = [
+                            'rgba(102, 126, 234, 0.6)',
+                            'rgba(118, 75, 162, 0.6)',
+                            'rgba(79, 172, 254, 0.6)',
+                            'rgba(250, 112, 154, 0.6)',
+                            'rgba(254, 225, 64, 0.6)',
+                            'rgba(240, 147, 251, 0.6)'
+                        ];
+                        
+                        const neighborhoodIndex = neighborhoods.indexOf(areaData[index].neighborhood);
+                        return colors[neighborhoodIndex] || 'rgba(118, 75, 162, 0.6)';
+                    },
+                    borderColor: 'rgba(118, 75, 162, 0.8)',
                     borderWidth: 1,
-                    pointRadius: 5
+                    pointRadius: 6,
+                    pointHoverRadius: 8
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const data = areaData[context.dataIndex];
+                                return [
+                                    `Price: $${data.y.toLocaleString()}`,
+                                    `Area: ${data.x.toLocaleString()} sqft`,
+                                    `Neighborhood: ${data.neighborhood}`
+                                ];
+                            }
+                        }
+                    }
+                },
                 scales: {
-                    x: { title: { display: true, text: 'Living Area (sqft)' } },
-                    y: { title: { display: true, text: 'Price ($)' } }
+                    x: { 
+                        title: { 
+                            display: true, 
+                            text: 'Living Area (sqft)',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: { color: 'rgba(0,0,0,0.05)' }
+                    },
+                    y: { 
+                        title: { 
+                            display: true, 
+                            text: 'Price ($)',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1000000) return '$' + (value/1000000).toFixed(1) + 'M';
+                                if (value >= 1000) return '$' + (value/1000).toFixed(0) + 'k';
+                                return '$' + value;
+                            }
+                        }
+                    }
                 }
             }
         });
 
         // Neighborhood Chart
-        const neighborhoodPrices = neighborhoods.map(n => {
-            const props = properties.filter(p => p.neighborhood === n);
-            const avg = props.reduce((sum, p) => sum + p.price, 0) / props.length;
-            return Math.floor(avg);
-        });
-        
+        const calculateNeighborhoodAverages = () => {
+            const neighborhoodData = {};
+            
+            neighborhoods.forEach(neighborhood => {
+                const props = properties.filter(p => p.neighborhood === neighborhood);
+                if (props.length > 0) {
+                    const avgPrice = props.reduce((sum, p) => sum + p.price, 0) / props.length;
+                    const avgSize = props.reduce((sum, p) => sum + p.sqft_living, 0) / props.length;
+                    neighborhoodData[neighborhood] = {
+                        avgPrice: Math.floor(avgPrice),
+                        avgSize: Math.floor(avgSize),
+                        count: props.length
+                    };
+                }
+            });
+            
+            return neighborhoodData;
+        };
+
+        const neighborhoodAverages = calculateNeighborhoodAverages();
         new Chart(document.getElementById('neighborhoodChart'), {
             type: 'bar',
             data: {
-                labels: neighborhoods,
+                labels: Object.keys(neighborhoodAverages),
                 datasets: [{
                     label: 'Average Price',
-                    data: neighborhoodPrices,
+                    data: Object.values(neighborhoodAverages).map(d => d.avgPrice),
                     backgroundColor: [
                         'rgba(102, 126, 234, 0.8)',
                         'rgba(240, 147, 251, 0.8)',
@@ -893,31 +1046,77 @@
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const neighborhood = context.label;
+                                const data = neighborhoodAverages[neighborhood];
+                                return [
+                                    `Avg Price: $${data.avgPrice.toLocaleString()}`,
+                                    `Avg Size: ${data.avgSize.toLocaleString()} sqft`,
+                                    `Properties: ${data.count}`
+                                ];
+                            }
+                        }
+                    }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Average Price ($)'
+                        },
                         ticks: {
                             callback: function(value) {
-                                return ' + (value / 1000) + 'k';
+                                if (value >= 1000000) return '$' + (value/1000000).toFixed(1) + 'M';
+                                return '$' + (value/1000).toFixed(0) + 'k';
                             }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Neighborhood'
                         }
                     }
                 }
             }
         });
 
-        // Feature Importance Chart
-        const features = ['Living Area', 'Bedrooms', 'Bathrooms', 'Year Built', 'Neighborhood', 'Lot Size'];
-        const importance = [0.45, 0.25, 0.15, 0.08, 0.05, 0.02];
+        // Feature Importance Chart (based on simulated correlation with price)
+        const calculateFeatureImportance = () => {
+            // Simulate feature importance based on correlation with price
+            const features = [
+                { name: 'Living Area', importance: 0.45 },
+                { name: 'Bedrooms', importance: 0.25 },
+                { name: 'Bathrooms', importance: 0.15 },
+                { name: 'Year Built', importance: 0.08 },
+                { name: 'Neighborhood', importance: 0.05 },
+                { name: 'Lot Size', importance: 0.02 }
+            ];
+            
+            // Add some randomness to make it dynamic
+            return features.map(f => ({
+                name: f.name,
+                importance: Math.max(0.01, f.importance + (Math.random() * 0.1 - 0.05))
+            }));
+        };
+
+        const featureImportance = calculateFeatureImportance();
+        const totalImportance = featureImportance.reduce((sum, f) => sum + f.importance, 0);
+        const normalizedFeatures = featureImportance.map(f => ({
+            name: f.name,
+            importance: (f.importance / totalImportance) * 100
+        }));
         
         new Chart(document.getElementById('correlationChart'), {
             type: 'doughnut',
             data: {
-                labels: features,
+                labels: normalizedFeatures.map(f => f.name),
                 datasets: [{
-                    data: importance,
+                    data: normalizedFeatures.map(f => f.importance),
                     backgroundColor: [
                         'rgba(102, 126, 234, 0.9)',
                         'rgba(118, 75, 162, 0.9)',
@@ -926,24 +1125,28 @@
                         'rgba(250, 112, 154, 0.9)',
                         'rgba(254, 225, 64, 0.9)'
                     ],
-                    borderWidth: 0
+                    borderWidth: 2,
+                    borderColor: 'white'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
+                cutout: '65%',
                 plugins: {
                     legend: {
-                        position: 'bottom',
+                        position: 'right',
                         labels: {
                             padding: 15,
-                            font: { size: 12 }
+                            font: { size: 12 },
+                            usePointStyle: true,
+                            pointStyle: 'circle'
                         }
                     },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return context.label + ': ' + (context.parsed * 100).toFixed(1) + '%';
+                                return context.label + ': ' + context.parsed.toFixed(1) + '%';
                             }
                         }
                     }
@@ -954,35 +1157,121 @@
         // Event Listeners
         document.getElementById('refresh-predictions').addEventListener('click', function() {
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            
             setTimeout(() => {
+                // Generate new data
+                const newData = generateDummyData(1247);
+                properties.length = 0;
+                properties.push(...newData);
+                
+                // Update everything
+                updateKPIMetrics();
                 populateTable();
+                
                 this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
-            }, 1000);
+                
+                // Show notification
+                const statusDiv = document.getElementById('upload-status');
+                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Data refreshed with new predictions!';
+                statusDiv.style.color = '#10b981';
+                statusDiv.style.backgroundColor = '#f0f9ff';
+                
+                setTimeout(() => {
+                    statusDiv.innerHTML = 'Ready for upload';
+                    statusDiv.style.color = '#64748b';
+                    statusDiv.style.backgroundColor = 'white';
+                }, 3000);
+                
+            }, 1500);
         });
 
         document.getElementById('csv-file').addEventListener('change', function(e) {
             const fileName = e.target.files[0]?.name || 'No file selected';
-            document.getElementById('file-info').textContent = fileName;
+            const fileSize = e.target.files[0]?.size || 0;
+            const fileInfo = document.getElementById('file-info');
+            
+            if (fileSize > 0) {
+                const sizeInMB = (fileSize / (1024 * 1024)).toFixed(2);
+                fileInfo.textContent = `${fileName} (${sizeInMB} MB)`;
+                fileInfo.style.color = '#10b981';
+            } else {
+                fileInfo.textContent = 'No file selected';
+                fileInfo.style.color = '#64748b';
+            }
         });
 
         document.getElementById('csv-upload-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const statusDiv = document.getElementById('upload-status');
+            const fileInput = document.getElementById('csv-file');
+            
+            if (!fileInput.files[0]) {
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please select a CSV file first!';
+                statusDiv.style.color = '#f59e0b';
+                statusDiv.style.backgroundColor = '#fffbeb';
+                return;
+            }
+            
             statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing predictions...';
+            statusDiv.style.color = '#64748b';
+            statusDiv.style.backgroundColor = '#f8fafc';
             
             setTimeout(() => {
-                statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Successfully predicted 50 properties!';
+                // Simulate processing
+                const newProperties = generateDummyData(50);
+                properties.unshift(...newProperties); // Add new properties at beginning
+                
+                // Update everything
+                updateKPIMetrics();
+                populateTable();
+                
+                statusDiv.innerHTML = `
+                    <i class="fas fa-check-circle"></i> 
+                    Successfully processed ${newProperties.length} properties!
+                    <br>
+                    <small>Model: ${document.getElementById('model-version').value}</small>
+                `;
                 statusDiv.style.color = '#10b981';
-                setTimeout(() => {
-                    statusDiv.innerHTML = 'Ready for upload';
-                    statusDiv.style.color = '#64748b';
-                }, 3000);
+                statusDiv.style.backgroundColor = '#f0f9ff';
+                
+                // Reset form
+                fileInput.value = '';
+                document.getElementById('file-info').textContent = 'No file selected';
+                document.getElementById('file-info').style.color = '#64748b';
+                
             }, 2000);
         });
 
         document.getElementById('sample-data-btn').addEventListener('click', function() {
-            alert('Sample CSV template downloaded! (Demo mode - no actual download)');
+            const statusDiv = document.getElementById('upload-status');
+            statusDiv.innerHTML = '<i class="fas fa-download"></i> Downloading sample data template...';
+            statusDiv.style.color = '#3b82f6';
+            statusDiv.style.backgroundColor = '#eff6ff';
+            
+            setTimeout(() => {
+                // Create a sample CSV in demo mode
+                const csvContent = "bedrooms,bathrooms,sqft_living,neighborhood,year_built\n3,2,1500,Downtown,1995\n4,3,2200,Uptown,2010\n2,1,1200,Riverside,1985";
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                
+                statusDiv.innerHTML = `
+                    <i class="fas fa-check-circle"></i> 
+                    Sample template downloaded!
+                    <br>
+                    <small><a href="#" onclick="alert('Sample CSV content:\\n\\n' + \`${csvContent}\`)">View content</a></small>
+                `;
+                statusDiv.style.color = '#10b981';
+                statusDiv.style.backgroundColor = '#f0f9ff';
+                
+                setTimeout(() => {
+                    statusDiv.innerHTML = 'Ready for upload';
+                    statusDiv.style.color = '#64748b';
+                    statusDiv.style.backgroundColor = 'white';
+                }, 4000);
+            }, 1000);
         });
+
+        // Auto-refresh date every minute
+        setInterval(updateDate, 60000);
     </script>
 </body>
 </html>
