@@ -13,12 +13,11 @@ class HousePriceModel:
             'xgb_pipeline_with_features.pkl'
             )
         
-        
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found at {model_path}")
-        # Artifact it self is pipeline
-        self.model = joblib.load(model_path)
-        
+        Artifact = joblib.load(model_path)
+        self.model = Artifact['pipeline']
+        self.features = Artifact['features']
 
     def predict(self, data: dict | list[dict]):
         df = pd.DataFrame(data if isinstance(data, list) else [data])
