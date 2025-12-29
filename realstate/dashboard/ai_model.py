@@ -13,6 +13,7 @@ class HousePriceModel:
             'xgb_pipeline_with_features.pkl'
             )
         
+        
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found at {model_path}")
         # Artifact it self is pipeline
