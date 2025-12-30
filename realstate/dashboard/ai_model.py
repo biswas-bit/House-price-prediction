@@ -5,6 +5,7 @@ import joblib
 from django.conf import settings
 
 
+
 class HousePriceModel:
     def __init__(self):
         model_path = os.path.join(
