@@ -3,10 +3,13 @@ from django.views.decorators.csrf import csrf_exempt
 from dashboard.ai_model import HousePriceModel
 import json
 from django.http import JsonResponse
+import logging
+
+logs = logging.getLogger(__name__)
 
 @csrf_exempt  
 def model_prediction(request):
-    if request.method == 'GET':
+    if request.method == 'POST':
         try:
             
             if 'file' in request.FILES:
@@ -140,3 +143,4 @@ def model_prediction(request):
             }, status=500)
     
     return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+
