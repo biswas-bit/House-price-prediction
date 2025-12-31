@@ -4,6 +4,7 @@ from dashboard.ai_model import HousePriceModel
 import json
 from django.http import JsonResponse
 import logging
+from realstate.forms import HouseForm
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ def model_prediction(request):
             logger.info("Model initialized for test prediction")
             
             test_data = {
-                "Id": 1461,
+                "Id":1,
                 "MSSubClass": 20,
                 "MSZoning": "RH",
                 "LotFrontage": 80,
@@ -220,3 +221,53 @@ def model_prediction(request):
         'error': 'Only POST requests are allowed',
         'received_method': request.method
     }, status=405)
+    
+    
+def Data_input_form(request):
+    print("=" * 50)
+    print("Data_input_form view called")
+    
+    if request.method == 'POST':
+        print("POST request received")
+        print(f"POST data keys: {list(request.POST.keys())}")
+        
+        form = HouseForm(request.POST)
+        print(f"Form instantiated with POST data")
+        print(f"Form is bound: {form.is_bound}")
+        
+        if form.is_valid():
+            print("✓ Form is valid")
+            cleaned_data = form.cleaned_data
+            print(f"✓ Cleaned data keys: {list(cleaned_data.keys())}")
+            print(f"✓ TotalBsmtSF: {cleaned_data.get('TotalBsmtSF')}")
+            print(f"✓ GrLivArea: {cleaned_data.get('GrLivArea')}")
+            
+            # Save to session or process further
+            request.session['form_data'] = cleaned_data
+            
+            # Redirect to success page or process prediction
+            return render(request, 'home/form.html', {
+                'form': form, 
+                'cleaned_data': cleaned_data,
+                'success': True
+            })
+        else:
+            print("✗ Form is INVALID")
+            print(f"Form errors: {form.errors}")
+            print(f"Form non-field errors: {form.non_field_errors()}")
+            
+            # Debug specific fields
+            for field_name, errors in form.errors.items():
+                print(f"Field '{field_name}': {errors}")
+            
+            return render(request, 'home/form.html', {
+                'form': form,
+                'errors': form.errors
+            })
+    
+    else:
+        print("GET request received")
+        form = HouseForm()
+        print("GET request - rendering empty form")
+    
+    return render(request, 'home/form.html', {'form': form})
