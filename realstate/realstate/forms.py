@@ -1,4 +1,5 @@
 from django import forms
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class HouseForm(forms.Form):
     # MSSubClass: Identifies the type of dwelling involved in the sale
@@ -407,11 +408,14 @@ class HouseForm(forms.Form):
         help_text='Unfinished square feet of basement area'
     )
     
+    # Total basement area - will be calculated automatically
     TotalBsmtSF = forms.IntegerField(
         label='Total Basement Area (sqft)',
         min_value=0,
         max_value=5000,
-        help_text='Total square feet of basement area'
+        help_text='Total square feet of basement area (Calculated automatically)',
+        widget=forms.NumberInput(attrs={'readonly': 'readonly'}),
+        required=False
     )
     
     HEATING_CHOICES = [
@@ -471,11 +475,14 @@ class HouseForm(forms.Form):
         help_text='Low quality finished square feet (all floors)'
     )
     
+    # GrLivArea - will be calculated automatically
     GrLivArea = forms.IntegerField(
         label='Above Grade Living Area (sqft)',
         min_value=0,
         max_value=5000,
-        help_text='Above grade (ground) living area square feet'
+        help_text='Above grade (ground) living area square feet (Calculated automatically)',
+        widget=forms.NumberInput(attrs={'readonly': 'readonly'}),
+        required=False
     )
     
     BsmtFullBath = forms.IntegerField(
@@ -781,51 +788,114 @@ class HouseForm(forms.Form):
         choices=SALECONDITION_CHOICES
     )
     
-    # Add custom clean method for validation
     def clean(self):
         cleaned_data = super().clean()
+        print("Form clean method called")
+        
+        # Calculate dependent fields
+        self._calculate_dependent_fields(cleaned_data)
         
         # Validate YearRemodAdd >= YearBuilt
         year_built = cleaned_data.get('YearBuilt')
         year_remod = cleaned_data.get('YearRemodAdd')
         if year_built and year_remod and year_remod < year_built:
-            raise forms.ValidationError("Remodel year cannot be earlier than construction year.")
-        
-        # Validate TotalBsmtSF >= sum of BsmtFinSF1, BsmtFinSF2, and BsmtUnfSF
-        total_bsmt = cleaned_data.get('TotalBsmtSF', 0)
-        bsmt_fin1 = cleaned_data.get('BsmtFinSF1', 0)
-        bsmt_fin2 = cleaned_data.get('BsmtFinSF2', 0)
-        bsmt_unf = cleaned_data.get('BsmtUnfSF', 0)
-        
-        if total_bsmt < (bsmt_fin1 + bsmt_fin2 + bsmt_unf):
-            raise forms.ValidationError(
-                "Total basement area should be greater than or equal to the sum of finished and unfinished areas."
-            )
-        
-        # Validate GrLivArea consistency
-        first_flr = cleaned_data.get('FirstFlrSF', 0)
-        second_flr = cleaned_data.get('SecondFlrSF', 0)
-        low_qual = cleaned_data.get('LowQualFinSF', 0)
-        
-        if (first_flr + second_flr + low_qual) != cleaned_data.get('GrLivArea', 0):
-            raise forms.ValidationError(
-                "Above grade living area should equal the sum of first floor, second floor, and low quality finished areas."
-            )
+            self.add_error('YearRemodAdd', "Remodel year cannot be earlier than construction year.")
         
         return cleaned_data
     
-    # Optional: Add widget customization for better UI
+    def _calculate_dependent_fields(self, cleaned_data):
+        """Calculate dependent fields automatically"""
+        print("Calculating dependent fields...")
+        
+        # 1. Calculate Total Basement Area
+        bsmt_fin1 = cleaned_data.get('BsmtFinSF1', 0) or 0
+        bsmt_fin2 = cleaned_data.get('BsmtFinSF2', 0) or 0
+        bsmt_unf = cleaned_data.get('BsmtUnfSF', 0) or 0
+        total_bsmt = bsmt_fin1 + bsmt_fin2 + bsmt_unf
+        
+        # If TotalBsmtSF was entered manually and differs from calculated, use manual
+        manual_total_bsmt = cleaned_data.get('TotalBsmtSF', 0) or 0
+        if manual_total_bsmt > 0 and manual_total_bsmt != total_bsmt:
+            # Warn if manual entry differs significantly
+            if abs(manual_total_bsmt - total_bsmt) > 100:
+                print(f"Warning: Manual TotalBsmtSF ({manual_total_bsmt}) differs from calculated ({total_bsmt})")
+        else:
+            cleaned_data['TotalBsmtSF'] = total_bsmt
+        
+        # 2. Calculate Above Grade Living Area
+        first_flr = cleaned_data.get('FirstFlrSF', 0) or 0
+        second_flr = cleaned_data.get('SecondFlrSF', 0) or 0
+        low_qual = cleaned_data.get('LowQualFinSF', 0) or 0
+        gr_liv_area = first_flr + second_flr + low_qual
+        
+        # If GrLivArea was entered manually and differs from calculated, use manual
+        manual_gr_liv = cleaned_data.get('GrLivArea', 0) or 0
+        if manual_gr_liv > 0 and manual_gr_liv != gr_liv_area:
+            # Warn if manual entry differs significantly
+            if abs(manual_gr_liv - gr_liv_area) > 100:
+                print(f"Warning: Manual GrLivArea ({manual_gr_liv}) differs from calculated ({gr_liv_area})")
+        else:
+            cleaned_data['GrLivArea'] = gr_liv_area
+        
+        print(f"Calculated TotalBsmtSF: {cleaned_data.get('TotalBsmtSF')}")
+        print(f"Calculated GrLivArea: {cleaned_data.get('GrLivArea')}")
+        
+        # Set calculated values back to form data for rendering
+        self.data = self.data.copy()
+        self.data['TotalBsmtSF'] = str(cleaned_data.get('TotalBsmtSF', 0))
+        self.data['GrLivArea'] = str(cleaned_data.get('GrLivArea', 0))
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Add CSS classes to all fields
+        print("Form __init__ called")
+        
+        # Add CSS classes and data attributes for JavaScript
         for field_name, field in self.fields.items():
             field.widget.attrs.update({
                 'class': 'form-control',
                 'placeholder': f'Enter {field.label.lower()}'
             })
         
+        # Set readonly for calculated fields
+        self.fields['TotalBsmtSF'].widget.attrs['readonly'] = True
+        self.fields['GrLivArea'].widget.attrs['readonly'] = True
+        
+        # Add data attributes for JavaScript calculations
+        self.fields['BsmtFinSF1'].widget.attrs['data-calc-target'] = 'TotalBsmtSF'
+        self.fields['BsmtFinSF2'].widget.attrs['data-calc-target'] = 'TotalBsmtSF'
+        self.fields['BsmtUnfSF'].widget.attrs['data-calc-target'] = 'TotalBsmtSF'
+        self.fields['FirstFlrSF'].widget.attrs['data-calc-target'] = 'GrLivArea'
+        self.fields['SecondFlrSF'].widget.attrs['data-calc-target'] = 'GrLivArea'
+        self.fields['LowQualFinSF'].widget.attrs['data-calc-target'] = 'GrLivArea'
+        
         # Special handling for specific fields
         self.fields['YearBuilt'].widget.attrs.update({'min': '1800', 'max': '2024'})
         self.fields['YearRemodAdd'].widget.attrs.update({'min': '1800', 'max': '2024'})
         self.fields['OverallQual'].widget.attrs.update({'min': '1', 'max': '10'})
         self.fields['OverallCond'].widget.attrs.update({'min': '1', 'max': '10'})
+        
+        # Initialize calculated fields if data exists
+        if args and args[0]:
+            self._initialize_calculated_fields(args[0])
+    
+    def _initialize_calculated_fields(self, data):
+        """Initialize calculated fields based on form data"""
+        try:
+            # Calculate TotalBsmtSF
+            bsmt_fin1 = int(data.get('BsmtFinSF1', 0) or 0)
+            bsmt_fin2 = int(data.get('BsmtFinSF2', 0) or 0)
+            bsmt_unf = int(data.get('BsmtUnfSF', 0) or 0)
+            total_bsmt = bsmt_fin1 + bsmt_fin2 + bsmt_unf
+            
+            # Calculate GrLivArea
+            first_flr = int(data.get('FirstFlrSF', 0) or 0)
+            second_flr = int(data.get('SecondFlrSF', 0) or 0)
+            low_qual = int(data.get('LowQualFinSF', 0) or 0)
+            gr_liv_area = first_flr + second_flr + low_qual
+            
+            # Update initial data
+            self.initial['TotalBsmtSF'] = total_bsmt
+            self.initial['GrLivArea'] = gr_liv_area
+            
+        except (ValueError, TypeError) as e:
+            print(f"Error initializing calculated fields: {e}")
