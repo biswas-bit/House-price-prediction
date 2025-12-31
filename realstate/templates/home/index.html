@@ -278,6 +278,7 @@
             border-radius: 20px;
             padding: 30px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: relative;
         }
 
         .chart-container h3 {
@@ -292,6 +293,28 @@
 
         .chart-container h3 i {
             color: #667eea;
+        }
+
+        .chart-placeholder {
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .chart-placeholder i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .chart-wrapper {
+            height: 300px;
+            width: 100%;
+            position: relative;
         }
 
         .data-grid {
@@ -652,6 +675,37 @@
                 </div>
             </section>
 
+            <!-- Chart Section -->
+            <section class="chart-section">
+                <h2 class="section-title"><i class="fas fa-chart-bar"></i> Data Visualization</h2>
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <h3><i class="fas fa-chart-line"></i> Price Distribution</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="priceDistributionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3><i class="fas fa-chart-pie"></i> Bedrooms vs Price</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="bedroomsPriceChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3><i class="fas fa-map-marker-alt"></i> Neighborhood Prices</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="neighborhoodChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3><i class="fas fa-building"></i> Year Built Analysis</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="yearBuiltChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="data-section">
                 <div class="data-grid">
                     <div class="table-container">
@@ -731,9 +785,10 @@
                         <div class="upload-instructions">
                             <h4><i class="fas fa-info-circle"></i> Requirements</h4>
                             <ul>
-                                <li>Use all columns from training data</li>
+                                <li>CSV file with required columns</li>
                                 <li>File size limit: 10MB</li>
                                 <li>Maximum rows: 10,000</li>
+                                <li>Required columns: BedroomAbvGr, FullBath, GrLivArea, Neighborhood, YearBuilt</li>
                             </ul>
                         </div>
                     </div>
@@ -747,7 +802,7 @@
         </main>
     </div>
 
- <script>
+<script>
     const API_BASE_URL = 'http://127.0.0.1:8000/'; 
     console.log('API Base URL:', API_BASE_URL);
     
@@ -758,6 +813,12 @@
     // Global data storage
     let properties = [];
     let isAPIConnected = false;
+    
+    // Chart instances
+    let priceDistributionChart = null;
+    let bedroomsPriceChart = null;
+    let neighborhoodChart = null;
+    let yearBuiltChart = null;
 
     // Date Display
     const updateDate = () => {
@@ -800,6 +861,370 @@
         document.querySelector('#total-properties').nextElementSibling.innerHTML = '<i class="fas fa-check-circle"></i> Live Data';
     };
 
+    // Initialize Charts
+    const initializeCharts = () => {
+        // Destroy existing charts if they exist
+        if (priceDistributionChart) priceDistributionChart.destroy();
+        if (bedroomsPriceChart) bedroomsPriceChart.destroy();
+        if (neighborhoodChart) neighborhoodChart.destroy();
+        if (yearBuiltChart) yearBuiltChart.destroy();
+        
+        if (properties.length === 0) {
+            // Show placeholders
+            document.querySelectorAll('.chart-wrapper').forEach(wrapper => {
+                wrapper.innerHTML = `
+                    <div class="chart-placeholder">
+                        <i class="fas fa-chart-bar"></i>
+                        <p>Upload data to see visualizations</p>
+                    </div>
+                `;
+            });
+            return;
+        }
+        
+        // Prepare data for charts
+        prepareChartData();
+    };
+
+    // Prepare data for all charts
+    const prepareChartData = () => {
+        // Price Distribution Chart (Histogram)
+        createPriceDistributionChart();
+        
+        // Bedrooms vs Price Chart
+        createBedroomsPriceChart();
+        
+        // Neighborhood Chart
+        createNeighborhoodChart();
+        
+        // Year Built Chart
+        createYearBuiltChart();
+    };
+
+    // Create Price Distribution Chart (Histogram)
+    const createPriceDistributionChart = () => {
+        const prices = properties.map(p => p.predicted_price || 0);
+        
+        // Create price ranges
+        const maxPrice = Math.max(...prices);
+        const minPrice = Math.min(...prices);
+        const range = maxPrice - minPrice;
+        const binSize = Math.ceil(range / 10);
+        
+        // Create bins
+        const bins = {};
+        for (let i = 0; i < 10; i++) {
+            const start = minPrice + (i * binSize);
+            const end = start + binSize;
+            bins[`$${Math.round(start/1000)}k-$${Math.round(end/1000)}k`] = 0;
+        }
+        
+        // Count properties in each bin
+        properties.forEach(prop => {
+            const price = prop.predicted_price || 0;
+            const binIndex = Math.floor((price - minPrice) / binSize);
+            const binKey = Object.keys(bins)[Math.min(binIndex, 9)];
+            bins[binKey]++;
+        });
+        
+        const ctx = document.getElementById('priceDistributionChart').getContext('2d');
+        priceDistributionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(bins),
+                datasets: [{
+                    label: 'Number of Properties',
+                    data: Object.values(bins),
+                    backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Properties'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Price Range'
+                        }
+                    }
+                }
+            }
+        });
+    };
+
+    // Create Bedrooms vs Price Chart
+    const createBedroomsPriceChart = () => {
+        // Group by bedrooms
+        const bedroomsData = {};
+        properties.forEach(prop => {
+            const bedrooms = prop.bedrooms || 0;
+            const price = prop.predicted_price || 0;
+            
+            if (!bedroomsData[bedrooms]) {
+                bedroomsData[bedrooms] = {
+                    total: 0,
+                    count: 0
+                };
+            }
+            bedroomsData[bedrooms].total += price;
+            bedroomsData[bedrooms].count++;
+        });
+        
+        // Calculate average price per bedroom count
+        const labels = Object.keys(bedroomsData).sort((a, b) => a - b);
+        const avgPrices = labels.map(bedrooms => 
+            Math.round(bedroomsData[bedrooms].total / bedroomsData[bedrooms].count)
+        );
+        
+        const ctx = document.getElementById('bedroomsPriceChart').getContext('2d');
+        bedroomsPriceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels.map(b => `${b} BR`),
+                datasets: [{
+                    label: 'Average Price',
+                    data: avgPrices,
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `$${context.parsed.y.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Average Price ($)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Number of Bedrooms'
+                        }
+                    }
+                }
+            }
+        });
+    };
+
+    // Create Neighborhood Chart
+    const createNeighborhoodChart = () => {
+        // Group by neighborhood
+        const neighborhoodData = {};
+        properties.forEach(prop => {
+            const neighborhood = prop.neighborhood || 'Unknown';
+            const price = prop.predicted_price || 0;
+            
+            if (!neighborhoodData[neighborhood]) {
+                neighborhoodData[neighborhood] = {
+                    total: 0,
+                    count: 0
+                };
+            }
+            neighborhoodData[neighborhood].total += price;
+            neighborhoodData[neighborhood].count++;
+        });
+        
+        // Get top 8 neighborhoods by count
+        const sortedNeighborhoods = Object.entries(neighborhoodData)
+            .sort((a, b) => b[1].count - a[1].count)
+            .slice(0, 8);
+        
+        const labels = sortedNeighborhoods.map(([name]) => name);
+        const avgPrices = sortedNeighborhoods.map(([, data]) => 
+            Math.round(data.total / data.count)
+        );
+        const counts = sortedNeighborhoods.map(([, data]) => data.count);
+        
+        const ctx = document.getElementById('neighborhoodChart').getContext('2d');
+        neighborhoodChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Average Price',
+                        data: avgPrices,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Property Count',
+                        data: counts,
+                        backgroundColor: 'rgba(255, 206, 86, 0.7)',
+                        borderColor: 'rgba(255, 206, 86, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y1',
+                        type: 'line'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Average Price ($)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Property Count'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+    };
+
+    // Create Year Built Chart
+    const createYearBuiltChart = () => {
+        // Group by decade
+        const decadeData = {};
+        properties.forEach(prop => {
+            const year = prop.year_built || 0;
+            if (year < 1900) return;
+            
+            const decade = Math.floor(year / 10) * 10;
+            const price = prop.predicted_price || 0;
+            
+            if (!decadeData[decade]) {
+                decadeData[decade] = {
+                    total: 0,
+                    count: 0
+                };
+            }
+            decadeData[decade].total += price;
+            decadeData[decade].count++;
+        });
+        
+        // Sort decades
+        const sortedDecades = Object.entries(decadeData)
+            .sort(([a], [b]) => parseInt(a) - parseInt(b));
+        
+        const labels = sortedDecades.map(([decade]) => `${decade}s`);
+        const avgPrices = sortedDecades.map(([, data]) => 
+            Math.round(data.total / data.count)
+        );
+        
+        const ctx = document.getElementById('yearBuiltChart').getContext('2d');
+        yearBuiltChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Average Price by Decade',
+                    data: avgPrices,
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `$${context.parsed.y.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Average Price ($)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Construction Decade'
+                        }
+                    }
+                }
+            }
+        });
+    };
+
     // Populate Table
     const populateTable = () => {
         const tbody = document.getElementById('predictions-table-body');
@@ -835,16 +1260,19 @@
         
         document.getElementById('row-count').textContent = Math.min(10, properties.length);
         document.getElementById('total-rows').textContent = properties.length;
+        
+        // Initialize charts after data is loaded
+        initializeCharts();
     };
 
-    // Check API Connection - SIMPLIFIED VERSION
+    // Check API Connection
     const checkAPIConnection = async () => {
         const apiStatusDiv = document.querySelector('#api-status span:last-child');
         const statusDot = document.querySelector('.status-dot');
         const uploadStatusDiv = document.getElementById('upload-status');
         
         try {
-            // Directly test the API endpoint with POST (since that's what we'll use)
+            // Directly test the API endpoint with POST
             const response = await fetch(API_ENDPOINT, {
                 method: 'POST',
                 headers: {
@@ -853,7 +1281,6 @@
                 body: JSON.stringify({ test: true })
             });
             
-            // Accept 200 OK or check if response is valid
             if (response.ok) {
                 const data = await response.json();
                 if (data.success !== undefined) {
@@ -1041,6 +1468,8 @@
                         uploadStatusDiv.innerHTML = `
                             <i class="fas fa-check-circle"></i> 
                             Successfully processed ${data.count || data.predictions.length} properties!
+                            <br>
+                            <small>Visualizations updated automatically</small>
                         `;
                         uploadStatusDiv.style.color = '#10b981';
                         uploadStatusDiv.style.backgroundColor = '#f0f9ff';
@@ -1150,6 +1579,7 @@
         console.log('API Endpoint:', API_ENDPOINT);
         
         initializeEventListeners();
+        initializeCharts(); // Initialize empty charts
         
         // First update UI with empty state
         updateKPIMetrics();
@@ -1172,7 +1602,8 @@
         endpoint: API_ENDPOINT,
         properties: () => properties,
         testConnection: checkAPIConnection,
-        reloadData: loadInitialData
+        reloadData: loadInitialData,
+        updateCharts: initializeCharts
     };
     
     console.log('Dashboard JS loaded. Type "dashboardDebug" in console for debugging tools.');
