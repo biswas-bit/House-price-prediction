@@ -333,6 +333,8 @@ def get_market_insights(requets):
             'success': False,
             'error': str(e)
         }, status=500)
+        
+        
 @csrf_exempt
 def get_recommendations(request):
     """Get property recommendations based on current market"""
@@ -349,7 +351,7 @@ def get_recommendations(request):
         # Create sample properties based on user criteria
         recommendations = []
         
-        # This is where you'd use your model to predict best value properties
+      
         # For now, return sample data
         for i in range(5):
             recommendations.append({
@@ -370,6 +372,48 @@ def get_recommendations(request):
                 'budget': budget,
                 'bedrooms': bedrooms
             }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+        
+
+@csrf_exempt
+def analyze_property(request):
+    """ analyze a specfic property's market position"""
+    try:
+        data = json.loads(request.body)
+        property_data = {
+            'GrLivArea': data.get('sqft_living', 2000),
+            'BedroomAbvGr': data.get('bedrooms', 3),
+            'FullBath': data.get('bathrooms', 2),
+            'OverallQual': data.get('quality', 7),
+            'Neighborhood': data.get('neighborhood', 'NAmes')
+        }
+        model = HousePriceModel()
+        predicted_price = model.predict(property_data)
+        
+        # generated market analysis
+        analysis = {
+            'predicted': predicted_price[0] if predicted_price else 0,
+            'markket_position': 'Above Average' if predicted_price > 350000 else 'Average',
+            'comparable':[
+                {'price':predicted_price *0.35, 'sqft': property_data['GrLivArea'] *0.9},
+                {'price':predicted_price *1.05, 'sqft': property_data['GrLivArea'] *1.1}
+            ],
+            'recommendations': [
+                'Consider kitchen upgrades for higher ROI',
+                'Energy-efficient windows improve value',
+                'Updated bathrooms yield 80% ROI'
+            ]
+        }
+        return JsonResponse({
+            'success':True,
+            'analysis':analysis,
+            'property_data':property_data
         })
         
     except Exception as e:
