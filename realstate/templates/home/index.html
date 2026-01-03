@@ -1949,29 +1949,38 @@
     }
 
     // Initialize the application
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Initializing Real Estate Analytics Dashboard...');
-        
-        // Setup all pages
-        setupDashboard();
-        setupPredictions();
-        setupUpload();
-        setupInsights();
-        setupSettings();
-        setupMobileMenu();
-        
-        // Initialize dates
-        updateAllDates();
-        
-        // Load initial data
-        checkAPIConnection();
-        loadPredictions();
-        loadInsights();
-        
-        // Set up auto-refresh
-        setupAutoRefresh();
-    });
-
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Initializing Real Estate Analytics Dashboard...');
+    
+    // Setup all pages
+    setupDashboard();
+    setupPredictions();
+    setupUpload();
+    setupSettings();  // This function exists
+    setupMobileMenu();
+    
+    // Initialize dates
+    updateAllDates();
+    
+    // Load initial data
+    checkAPIConnection();
+    loadPredictions();     // This loads predictions data
+    loadInsights();        // This loads insights data (NOT setupInsights)
+    
+    // Set up auto-refresh
+    setupAutoRefresh();
+});
+// Add this function to your JavaScript (put it near other setup functions)
+function setupInsights() {
+    // Setup event listeners for insights page
+    const refreshBtn = document.querySelector('.refresh-insights');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshInsights);
+    }
+    
+    // Setup other insights page interactions here
+    console.log('Insights page setup complete');
+}
     // API Connection
     async function checkAPIConnection() {
         const apiStatusDiv = document.querySelector('#api-status');
