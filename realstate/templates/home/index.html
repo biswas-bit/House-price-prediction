@@ -1794,98 +1794,156 @@
             </div>
 
             <!-- Settings Page -->
-            <div id="settings-page" class="page-content">
-                <header class="header">
-                    <div class="header-left">
-                        <h1>Settings</h1>
-                        <p class="subtitle">Configure your dashboard preferences</p>
-                    </div>
-                    <div class="date-display" id="settings-date"></div>
-                </header>
+            <!-- Settings Page -->
+<div id="settings-page" class="page-content">
+    <header class="header">
+        <div class="header-left">
+            <h1>Settings</h1>
+            <p class="subtitle">Configure your dashboard preferences</p>
+        </div>
+        <div class="date-display" id="settings-date"></div>
+    </header>
 
-                <div class="settings-container">
-                    <div class="settings-section">
-                        <h3><i class="fas fa-sliders-h"></i> General Settings</h3>
-                        <div class="settings-item">
-                            <div class="settings-info">
-                                <h4>Theme Mode</h4>
-                                <p>Switch between light and dark themes</p>
-                            </div>
-                            <div class="settings-control">
-                                <select id="theme-selector">
-                                    <option value="light">Light Theme</option>
-                                    <option value="dark">Dark Theme</option>
-                                    <option value="auto">Auto (System)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="settings-item">
-                            <div class="settings-info">
-                                <h4>Auto-refresh Data</h4>
-                                <p>Automatically refresh dashboard data</p>
-                            </div>
-                            <div class="settings-control">
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="auto-refresh" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="settings-item">
-                            <div class="settings-info">
-                                <h4>Refresh Interval</h4>
-                                <p>How often to refresh data (if enabled)</p>
-                            </div>
-                            <div class="settings-control">
-                                <select id="refresh-interval">
-                                    <option value="5">5 minutes</option>
-                                    <option value="15">15 minutes</option>
-                                    <option value="30" selected>30 minutes</option>
-                                    <option value="60">1 hour</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="settings-section">
-                        <h3><i class="fas fa-chart-bar"></i> Display Settings</h3>
-                        <div class="settings-item">
-                            <div class="settings-info">
-                                <h4>Price Format</h4>
-                                <p>How to display prices</p>
-                            </div>
-                            <div class="settings-control">
-                                <select id="price-format">
-                                    <option value="full">Full Amount ($1,234,567)</option>
-                                    <option value="short" selected>Shortened ($1.23M)</option>
-                                    <option value="both">Both Formats</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="settings-item">
-                            <div class="settings-info">
-                                <h4>Show Animations</h4>
-                                <p>Enable/disable UI animations</p>
-                            </div>
-                            <div class="settings-control">
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="show-animations" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="resetSettings()">
-                            <i class="fas fa-undo"></i> Reset to Defaults
-                        </button>
-                        <button type="button" class="btn btn-primary" onclick="saveSettings()">
-                            <i class="fas fa-save"></i> Save Settings
-                        </button>
-                    </div>
+    <div class="settings-container">
+        <div class="settings-section">
+            <h3><i class="fas fa-sliders-h"></i> General Settings</h3>
+            <div class="settings-item">
+                <div class="settings-info">
+                    <h4>Theme Mode</h4>
+                    <p>Switch between light and dark themes</p>
+                </div>
+                <div class="settings-control">
+                    <select id="theme-selector">
+                        <option value="light">Light Theme</option>
+                        <option value="dark">Dark Theme</option>
+                        <option value="auto">Auto (System)</option>
+                    </select>
                 </div>
             </div>
+            <div class="settings-item">
+                <div class="settings-info">
+                    <h4>Auto-refresh Data</h4>
+                    <p>Automatically refresh dashboard data</p>
+                </div>
+                <div class="settings-control">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="auto-refresh" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="settings-item">
+                <div class="settings-info">
+                    <h4>Refresh Interval</h4>
+                    <p>How often to refresh data (if enabled)</p>
+                </div>
+                <div class="settings-control">
+                    <select id="refresh-interval">
+                        <option value="5">5 minutes</option>
+                        <option value="15">15 minutes</option>
+                        <option value="30" selected>30 minutes</option>
+                        <option value="60">1 hour</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3><i class="fas fa-chart-bar"></i> Display Settings</h3>
+            <div class="settings-item">
+                <div class="settings-info">
+                    <h4>Default Charts</h4>
+                    <p>Select which charts to display by default</p>
+                </div>
+                <div class="settings-control">
+                    <select id="default-charts">
+                        <option value="all">All Charts</option>
+                        <option value="essential">Essential Charts Only</option>
+                        <option value="custom">Custom Selection</option>
+                    </select>
+                </div>
+            </div>
+            <div class="settings-item">
+                <div class="settings-info">
+                    <h4>Price Format</h4>
+                    <p>How to display prices</p>
+                </div>
+                <div class="settings-control">
+                    <select id="price-format">
+                        <option value="full">Full Amount ($1,234,567)</option>
+                        <option value="short" selected>Shortened ($1.23M)</option>
+                        <option value="both">Both Formats</option>
+                    </select>
+                </div>
+            </div>
+            <div class="settings-item">
+                <div class="settings-info">
+                    <h4>Show Animations</h4>
+                    <p>Enable/disable UI animations</p>
+                </div>
+                <div class="settings-control">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="show-animations" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3><i class="fas fa-cog"></i> Model Settings</h3>
+            <div class="settings-item">
+                <div class="settings-info">
+                    <h4>Default Model</h4>
+                    <p>Select the default prediction model</p>
+                </div>
+                <div class="settings-control">
+                    <select id="default-model">
+                        <option value="xgboost-v2.1" selected>XGBoost v2.1</option>
+                        <option value="xgboost-v2.0">XGBoost v2.0</option>
+                        <option value="random-forest">Random Forest</option>
+                        <option value="ensemble">Ensemble Model</option>
+                    </select>
+                </div>
+            </div>
+            <div class="settings-item">
+                <div class="settings-info">
+                    <h4>Confidence Threshold</h4>
+                    <p>Minimum confidence level for predictions</p>
+                </div>
+                <div class="settings-control">
+                    <select id="confidence-threshold">
+                        <option value="80">80%</option>
+                        <option value="85">85%</option>
+                        <option value="90" selected>90%</option>
+                        <option value="95">95%</option>
+                    </select>
+                </div>
+            </div>
+            <div class="settings-item">
+                <div class="settings-info">
+                    <h4>Show Prediction Details</h4>
+                    <p>Display detailed prediction breakdown</p>
+                </div>
+                <div class="settings-control">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="show-details" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="resetSettings()">
+                <i class="fas fa-undo"></i> Reset to Defaults
+            </button>
+            <button type="button" class="btn btn-primary" onclick="saveSettings()">
+                <i class="fas fa-save"></i> Save Settings
+            </button>
+        </div>
+    </div>
+</div>
 
             <footer class="footer">
                 <p>Real Estate Price Analytics Dashboard v2.0</p>
@@ -1964,8 +2022,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load initial data
     checkAPIConnection();
-    loadPredictions();     // This loads predictions data
-    loadInsights();        // This loads insights data (NOT setupInsights)
+    loadPredictions();     
+    loadInsights();        
     
     // Set up auto-refresh
     setupAutoRefresh();
@@ -2946,53 +3004,145 @@ function setupInsights() {
 
     // Settings Page Functions
     function setupSettings() {
-        // Load saved settings from localStorage
-        const savedSettings = JSON.parse(localStorage.getItem('dashboard-settings') || '{}');
-        
-        // Apply saved settings
-        if (savedSettings.theme) {
-            document.getElementById('theme-selector').value = savedSettings.theme;
-            applyTheme(savedSettings.theme);
-        }
-        
-        if (savedSettings.autoRefresh !== undefined) {
-            document.getElementById('auto-refresh').checked = savedSettings.autoRefresh;
-        }
-        
-        if (savedSettings.refreshInterval) {
-            document.getElementById('refresh-interval').value = savedSettings.refreshInterval;
-        }
-        
-        if (savedSettings.priceFormat) {
-            document.getElementById('price-format').value = savedSettings.priceFormat;
-        }
-        
-        if (savedSettings.showAnimations !== undefined) {
-            document.getElementById('show-animations').checked = savedSettings.showAnimations;
-        }
+    // Load saved settings from localStorage
+    const savedSettings = JSON.parse(localStorage.getItem('dashboard-settings') || '{}');
+    
+    // Apply saved settings
+    if (savedSettings.theme) {
+        document.getElementById('theme-selector').value = savedSettings.theme;
+        applyTheme(savedSettings.theme);
     }
+    
+    if (savedSettings.autoRefresh !== undefined) {
+        document.getElementById('auto-refresh').checked = savedSettings.autoRefresh;
+    }
+    
+    if (savedSettings.refreshInterval) {
+        document.getElementById('refresh-interval').value = savedSettings.refreshInterval;
+    }
+    
+    if (savedSettings.priceFormat) {
+        document.getElementById('price-format').value = savedSettings.priceFormat;
+    }
+    
+    if (savedSettings.showAnimations !== undefined) {
+        document.getElementById('show-animations').checked = savedSettings.showAnimations;
+        toggleAnimations(savedSettings.showAnimations);
+    }
+    
+    if (savedSettings.defaultCharts) {
+        document.getElementById('default-charts').value = savedSettings.defaultCharts;
+    }
+    
+    if (savedSettings.defaultModel) {
+        document.getElementById('default-model').value = savedSettings.defaultModel;
+    }
+    
+    if (savedSettings.confidenceThreshold) {
+        document.getElementById('confidence-threshold').value = savedSettings.confidenceThreshold;
+    }
+    
+    if (savedSettings.showDetails !== undefined) {
+        document.getElementById('show-details').checked = savedSettings.showDetails;
+    }
+    
+    // Setup event listeners for theme preview
+    document.getElementById('theme-selector').addEventListener('change', function() {
+        previewTheme(this.value);
+    });
+    
+    // Setup event listeners for animations preview
+    document.getElementById('show-animations').addEventListener('change', function() {
+        previewAnimation(this.checked);
+    });
+    
+    console.log('Settings page setup complete');
+}
 
     function saveSettings() {
-        const settings = {
-            theme: document.getElementById('theme-selector').value,
-            autoRefresh: document.getElementById('auto-refresh').checked,
-            refreshInterval: document.getElementById('refresh-interval').value,
-            priceFormat: document.getElementById('price-format').value,
-            showAnimations: document.getElementById('show-animations').checked
-        };
-        
-        localStorage.setItem('dashboard-settings', JSON.stringify(settings));
-        applyTheme(settings.theme);
-        
-        showToast('Settings saved successfully!', 'success');
-    }
+    const settings = {
+        theme: document.getElementById('theme-selector').value,
+        autoRefresh: document.getElementById('auto-refresh').checked,
+        refreshInterval: document.getElementById('refresh-interval').value,
+        priceFormat: document.getElementById('price-format').value,
+        showAnimations: document.getElementById('show-animations').checked,
+        defaultCharts: document.getElementById('default-charts').value,
+        defaultModel: document.getElementById('default-model').value,
+        confidenceThreshold: document.getElementById('confidence-threshold').value,
+        showDetails: document.getElementById('show-details').checked,
+        savedAt: new Date().toISOString()
+    };
+    
+    localStorage.setItem('dashboard-settings', JSON.stringify(settings));
+    applyAllSettings(settings);
+    
+    // Show success animation
+    const saveBtn = document.querySelector('#settings-page .btn-primary');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+    saveBtn.style.background = '#10b981';
+    
+    setTimeout(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.style.background = '';
+    }, 2000);
+    
+    showToast('Settings saved successfully! Changes will apply immediately.', 'success');
+}
 
     function resetSettings() {
-        if (confirm('Reset all settings to default values?')) {
-            localStorage.removeItem('dashboard-settings');
-            location.reload();
-        }
+    if (confirm('Are you sure you want to reset all settings to default values?')) {
+        const defaultSettings = {
+            theme: 'auto',
+            autoRefresh: true,
+            refreshInterval: '30',
+            priceFormat: 'short',
+            showAnimations: true,
+            defaultCharts: 'all',
+            defaultModel: 'xgboost-v2.1',
+            confidenceThreshold: '90',
+            showDetails: true
+        };
+        
+        // Apply default settings to UI
+        document.getElementById('theme-selector').value = defaultSettings.theme;
+        document.getElementById('auto-refresh').checked = defaultSettings.autoRefresh;
+        document.getElementById('refresh-interval').value = defaultSettings.refreshInterval;
+        document.getElementById('price-format').value = defaultSettings.priceFormat;
+        document.getElementById('show-animations').checked = defaultSettings.showAnimations;
+        document.getElementById('default-charts').value = defaultSettings.defaultCharts;
+        document.getElementById('default-model').value = defaultSettings.defaultModel;
+        document.getElementById('confidence-threshold').value = defaultSettings.confidenceThreshold;
+        document.getElementById('show-details').checked = defaultSettings.showDetails;
+        
+        // Apply default settings
+        applyAllSettings(defaultSettings);
+        
+        // Clear from localStorage
+        localStorage.removeItem('dashboard-settings');
+        
+        showToast('Settings reset to default values', 'success');
     }
+}
+function applyAllSettings(settings) {
+    // Apply theme
+    applyTheme(settings.theme);
+    
+    // Apply animations
+    toggleAnimations(settings.showAnimations);
+    
+    // Apply price format
+    applyPriceFormat(settings.priceFormat);
+    
+    // Apply auto-refresh
+    setupAutoRefresh(settings.autoRefresh, settings.refreshInterval);
+    
+    // Apply model settings
+    applyModelSettings(settings.defaultModel, settings.confidenceThreshold, settings.showDetails);
+    
+    // Apply chart settings
+    applyChartSettings(settings.defaultCharts);
+}
 
     function applyTheme(theme) {
         if (theme === 'dark') {
@@ -3008,7 +3158,61 @@ function setupInsights() {
             }
         }
     }
-
+function applyTheme(theme) {
+    const root = document.documentElement;
+    
+    if (theme === 'dark') {
+        // Dark theme variables
+        root.style.setProperty('--bg-primary', '#1a202c');
+        root.style.setProperty('--bg-secondary', '#2d3748');
+        root.style.setProperty('--text-primary', '#f7fafc');
+        root.style.setProperty('--text-secondary', '#e2e8f0');
+        root.style.setProperty('--card-bg', 'rgba(45, 55, 72, 0.95)');
+        root.style.setProperty('--border-color', '#4a5568');
+        document.body.style.background = 'linear-gradient(135deg, #2d3748 0%, #4a5568 100%)';
+        
+        // Update header gradient
+        document.querySelectorAll('.header-left h1').forEach(el => {
+            el.style.background = 'linear-gradient(135deg, #63b3ed 0%, #805ad5 100%)';
+            el.style.webkitBackgroundClip = 'text';
+            el.style.webkitTextFillColor = 'transparent';
+        });
+        
+    } else if (theme === 'light') {
+        // Light theme variables
+        root.style.setProperty('--bg-primary', '#ffffff');
+        root.style.setProperty('--bg-secondary', '#f7fafc');
+        root.style.setProperty('--text-primary', '#2d3748');
+        root.style.setProperty('--text-secondary', '#4a5568');
+        root.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.98)');
+        root.style.setProperty('--border-color', '#e2e8f0');
+        document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        
+        // Update header gradient
+        document.querySelectorAll('.header-left h1').forEach(el => {
+            el.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            el.style.webkitBackgroundClip = 'text';
+            el.style.webkitTextFillColor = 'transparent';
+        });
+        
+    } else {
+        // Auto theme based on system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            applyTheme('dark');
+        } else {
+            applyTheme('light');
+        }
+        
+        // Listen for system theme changes
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                if (theme === 'auto') {
+                    applyTheme(e.matches ? 'dark' : 'light');
+                }
+            });
+        }
+    }
+}
     // Mobile Menu
     function setupMobileMenu() {
         const mobileToggle = document.getElementById('mobileMenuToggle');
@@ -3027,6 +3231,270 @@ function setupInsights() {
             }
         });
     }
+
+    function previewTheme(theme) {
+    // Temporarily apply theme for preview
+    const originalTheme = document.getElementById('theme-selector').value;
+    applyTheme(theme);
+    
+    // Show preview message
+    showToast(`Previewing ${theme} theme`, 'info');
+    
+    // Revert after 3 seconds if not saved
+    setTimeout(() => {
+        if (document.getElementById('theme-selector').value !== theme) {
+            applyTheme(originalTheme);
+        }
+    }, 3000);
+}
+function toggleAnimations(enabled) {
+    const root = document.documentElement;
+    
+    if (enabled) {
+        root.style.setProperty('--transition-speed', '0.3s');
+        root.style.setProperty('--animation-duration', '0.5s');
+        
+        // Enable all CSS animations
+        document.querySelectorAll('*').forEach(el => {
+            el.style.animationPlayState = 'running';
+            el.style.transition = 'all var(--transition-speed) ease';
+        });
+        
+        // Add animation class to cards
+        document.querySelectorAll('.kpi-card, .insight-card, .form-section').forEach(card => {
+            card.classList.add('animated');
+        });
+    } else {
+        root.style.setProperty('--transition-speed', '0s');
+        root.style.setProperty('--animation-duration', '0s');
+        
+        // Disable all CSS animations
+        document.querySelectorAll('*').forEach(el => {
+            el.style.animationPlayState = 'paused';
+            el.style.transition = 'none';
+        });
+        
+        // Remove animation class from cards
+        document.querySelectorAll('.kpi-card, .insight-card, .form-section').forEach(card => {
+            card.classList.remove('animated');
+        });
+    }
+}
+function previewAnimation(enabled) {
+    // Show animation preview
+    const previewCard = document.createElement('div');
+    previewCard.className = 'kpi-card';
+    previewCard.innerHTML = `
+        <div class="kpi-header">
+            <div>
+                <h3>Animation Preview</h3>
+                <p class="kpi-value">${enabled ? 'Enabled' : 'Disabled'}</p>
+            </div>
+            <div class="kpi-icon">
+                <i class="fas fa-${enabled ? 'play' : 'pause'}"></i>
+            </div>
+        </div>
+    `;
+    previewCard.style.position = 'fixed';
+    previewCard.style.top = '50%';
+    previewCard.style.left = '50%';
+    previewCard.style.transform = 'translate(-50%, -50%)';
+    previewCard.style.zIndex = '9999';
+    previewCard.style.boxShadow = '0 10px 40px rgba(0,0,0,0.3)';
+    
+    document.body.appendChild(previewCard);
+    
+    // Animate if enabled
+    if (enabled) {
+        previewCard.style.animation = 'bounce 1s ease';
+    }
+    
+    // Remove after preview
+    setTimeout(() => {
+        previewCard.remove();
+    }, 1500);
+}
+
+function applyPriceFormat(format) {
+    // Update all price displays
+    document.querySelectorAll('.price-cell, .kpi-value, .prediction-value').forEach(element => {
+        const text = element.textContent;
+        if (text.includes('$')) {
+            if (format === 'short') {
+                // Convert to short format ($1.23M)
+                const price = parseFloat(text.replace(/[$,]/g, ''));
+                if (price >= 1000000) {
+                    element.textContent = '$' + (price / 1000000).toFixed(2) + 'M';
+                } else if (price >= 1000) {
+                    element.textContent = '$' + (price / 1000).toFixed(1) + 'K';
+                }
+            } else if (format === 'full') {
+                // Ensure full format with commas
+                const price = parseFloat(text.replace(/[$,]/g, ''));
+                if (!isNaN(price)) {
+                    element.textContent = '$' + price.toLocaleString();
+                }
+            }
+        }
+    });
+    
+    // Update chart tooltips if charts exist
+    if (priceDistributionChart) {
+        priceDistributionChart.options.plugins.tooltip.callbacks.label = function(context) {
+            if (format === 'short') {
+                const value = context.parsed.y;
+                if (value >= 1000000) {
+                    return `$${(value / 1000000).toFixed(2)}M`;
+                } else if (value >= 1000) {
+                    return `$${(value / 1000).toFixed(1)}K`;
+                }
+                return `$${value}`;
+            }
+            return `$${context.parsed.y.toLocaleString()}`;
+        };
+        priceDistributionChart.update();
+    }
+}
+
+function setupAutoRefresh(autoRefresh, intervalMinutes) {
+    // Clear any existing interval
+    if (window.autoRefreshInterval) {
+        clearInterval(window.autoRefreshInterval);
+    }
+    
+    // Setup new interval if auto-refresh is enabled
+    if (autoRefresh) {
+        const intervalMs = parseInt(intervalMinutes) * 60 * 1000;
+        window.autoRefreshInterval = setInterval(() => {
+            if (currentPage === 'dashboard') {
+                loadPredictions();
+                showToast('Data refreshed automatically', 'info');
+            } else if (currentPage === 'insights') {
+                loadInsights();
+                showToast('Insights refreshed automatically', 'info');
+            }
+        }, intervalMs);
+    }
+}
+
+function applyModelSettings(model, confidenceThreshold, showDetails) {
+    // Update model version dropdowns
+    document.querySelectorAll('#model-version, #bulk-model-version').forEach(select => {
+        select.value = model;
+    });
+    
+    // Store confidence threshold for predictions
+    window.confidenceThreshold = parseInt(confidenceThreshold);
+    
+    // Update prediction result display based on showDetails
+    const predictionResult = document.getElementById('prediction-result');
+    const predictionDetails = document.querySelector('.prediction-details');
+    
+    if (predictionResult && predictionDetails) {
+        predictionDetails.style.display = showDetails ? 'grid' : 'none';
+    }
+    
+    // Update existing prediction if visible
+    if (document.getElementById('prediction-result').style.display !== 'none') {
+        const confidenceLevel = document.getElementById('confidence-level');
+        if (confidenceLevel) {
+            const currentConfidence = parseFloat(confidenceLevel.textContent);
+            if (currentConfidence < window.confidenceThreshold) {
+                confidenceLevel.style.color = '#ef4444';
+                confidenceLevel.innerHTML += ' <i class="fas fa-exclamation-triangle"></i>';
+            } else {
+                confidenceLevel.style.color = '#10b981';
+            }
+        }
+    }
+}
+
+function applyChartSettings(chartSetting) {
+    const chartGrid = document.querySelector('.chart-grid');
+    if (!chartGrid) return;
+    
+    const charts = chartGrid.querySelectorAll('.chart-container');
+    
+    if (chartSetting === 'essential') {
+        // Show only essential charts
+        charts.forEach((chart, index) => {
+            chart.style.display = index < 2 ? 'block' : 'none';
+        });
+    } else if (chartSetting === 'custom') {
+        // In a real app, this would use saved custom preferences
+        charts.forEach((chart, index) => {
+            chart.style.display = index !== 2 ? 'block' : 'none'; // Hide third chart
+        });
+    } else {
+        // Show all charts
+        charts.forEach(chart => {
+            chart.style.display = 'block';
+        });
+    }
+}
+
+// CSS Animations Keyframes (add to your CSS)
+const animationCSS = `
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+    40% {transform: translateY(-20px);}
+    60% {transform: translateY(-10px);}
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% {transform: scale(1);}
+    50% {transform: scale(1.05);}
+    100% {transform: scale(1);}
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.animated {
+    animation-duration: var(--animation-duration, 0.5s);
+    animation-fill-mode: both;
+}
+
+.kpi-card:hover {
+    animation: pulse 0.5s ease;
+}
+
+.page-content.active {
+    animation: fadeInUp 0.5s ease;
+}
+
+.toast {
+    animation: slideInRight 0.3s ease;
+}
+
+.form-section {
+    transition: all var(--transition-speed, 0.3s) ease;
+}
+`;
+
+// Add animation CSS to document
+const style = document.createElement('style');
+style.textContent = animationCSS;
+document.head.appendChild(style);
 
     // Navigation
     function switchPage(page) {
