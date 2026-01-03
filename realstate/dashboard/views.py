@@ -333,3 +333,47 @@ def get_market_insights(requets):
             'success': False,
             'error': str(e)
         }, status=500)
+@csrf_exempt
+def get_recommendations(request):
+    """Get property recommendations based on current market"""
+    try:
+        data = json.loads(request.body)
+        
+        # Get user preferences or use defaults
+        budget = data.get('budget', 500000)
+        bedrooms = data.get('bedrooms', 3)
+        
+        # Generate recommendations using your model
+        model = HousePriceModel()
+        
+        # Create sample properties based on user criteria
+        recommendations = []
+        
+        # This is where you'd use your model to predict best value properties
+        # For now, return sample data
+        for i in range(5):
+            recommendations.append({
+                'id': i + 1,
+                'neighborhood': f'Neighborhood {i+1}',
+                'predicted_price': budget * (0.8 + i * 0.1),
+                'bedrooms': bedrooms,
+                'bathrooms': bedrooms - 1,
+                'sqft': 1500 + i * 200,
+                'value_score': 85 + i * 3,
+                'features': ['Good Schools', 'Near Park', 'Modern Kitchen'][:i+1]
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'recommendations': recommendations,
+            'criteria': {
+                'budget': budget,
+                'bedrooms': bedrooms
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
