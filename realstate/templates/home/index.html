@@ -6,6 +6,7 @@
     <title>Real Estate Price Analytics</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -1016,6 +1017,165 @@
                 grid-template-columns: 1fr;
             }
         }
+        /* Loading States */
+        .loading-dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #667eea;
+            animation: dotPulse 1.5s infinite ease-in-out;
+        }
+
+        .loading-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes dotPulse {
+            0%, 100% {
+                opacity: 0.4;
+                transform: scale(0.8);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 300px;
+            max-width: 400px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            border-left: 4px solid #667eea;
+        }
+
+        .toast-success {
+            border-left-color: #10b981;
+        }
+
+        .toast-warning {
+            border-left-color: #f59e0b;
+        }
+
+        .toast-error {
+            border-left-color: #ef4444;
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast-content i {
+            font-size: 1.2em;
+        }
+
+        .toast-success .toast-content i {
+            color: #10b981;
+        }
+
+        .toast-warning .toast-content i {
+            color: #f59e0b;
+        }
+
+        .toast-error .toast-content i {
+            color: #ef4444;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .toast-close:hover {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Refresh button styling */
+        .refresh-insights {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .refresh-insights:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+
+        .refresh-insights.refreshing {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        /* Form Validation */
+        .form-error {
+            border-color: #ef4444 !important;
+        }
+
+        .error-text {
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .success-text {
+            color: #10b981;
+            font-size: 12px;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
@@ -1149,7 +1309,7 @@
                         <div class="table-container">
                             <div class="table-header">
                                 <h3><i class="fas fa-table"></i> Property Predictions</h3>
-                                <button class="btn btn-secondary" id="refresh-predictions">
+                                <button class="btn btn-secondary" id="refresh-predictions" onclick="loadPredictions()">
                                     <i class="fas fa-sync-alt"></i> Refresh
                                 </button>
                             </div>
@@ -1169,7 +1329,11 @@
                                     <tbody id="predictions-table-body">
                                         <tr>
                                             <td colspan="7" style="text-align: center; padding: 40px;">
-                                                <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: #667eea;"></i>
+                                                <div class="loading-dots">
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                </div>
                                                 <p style="margin-top: 10px; color: #64748b;">Loading predictions...</p>
                                             </td>
                                         </tr>
@@ -1187,18 +1351,18 @@
                                 <div class="upload-icon">
                                     <i class="fas fa-file-csv"></i>
                                 </div>
-                                <p class="upload-info">Quick upload for CSV predictions</p>
+                                <p class="upload-info">Upload CSV for batch predictions</p>
                                 
-                                <form id="csv-upload-form">
+                                <form id="csv-upload-form" enctype="multipart/form-data">
                                     <div class="form-group">
                                         <label for="csv-file">Select CSV File</label>
-                                        <input type="file" id="csv-file" accept=".csv">
+                                        <input type="file" id="csv-file" name="file" accept=".csv" required>
                                         <div class="file-info" id="file-info">No file selected</div>
                                     </div>
                                     
                                     <div class="form-group">
                                         <label for="model-version">Model Version</label>
-                                        <select id="model-version">
+                                        <select id="model-version" name="model_version">
                                             <option value="xgboost-v2.1">XGBoost v2.1 (Current)</option>
                                             <option value="xgboost-v2.0">XGBoost v2.0</option>
                                             <option value="xgboost-v1.5">XGBoost v1.5</option>
@@ -1209,7 +1373,7 @@
                                         <button type="submit" class="btn btn-primary">
                                             <i class="fas fa-bolt"></i> Predict
                                         </button>
-                                        <button type="button" class="btn btn-secondary" id="sample-data-btn">
+                                        <button type="button" class="btn btn-secondary" onclick="downloadTemplate()">
                                             <i class="fas fa-download"></i> Sample
                                         </button>
                                     </div>
@@ -1249,29 +1413,37 @@
                     <p>Your property price has been predicted. Check the results below.</p>
                 </div>
 
-                <form id="prediction-form">
+                <form id="prediction-form" onsubmit="return false;">
                     <div class="form-container">
                         <!-- Section 1: Basic Information -->
                         <div class="form-section" style="--gradient-start: #667eea; --gradient-end: #764ba2;">
                             <h3><i class="fas fa-info-circle"></i> Basic Information</h3>
                             <div class="prediction-form-group">
                                 <label for="prediction-neighborhood">Neighborhood</label>
-                                <select id="prediction-neighborhood" class="form-control">
+                                <select id="prediction-neighborhood" class="form-control" required>
                                     <option value="">Select Neighborhood</option>
                                     <option value="NAmes">NAmes - North Ames</option>
                                     <option value="CollgCr">CollgCr - College Creek</option>
                                     <option value="OldTown">OldTown - Old Town</option>
                                     <option value="Edwards">Edwards - Edwards</option>
                                     <option value="Somerst">Somerst - Somerset</option>
+                                    <option value="NoRidge">NoRidge - Northridge</option>
+                                    <option value="NridgHt">NridgHt - Northridge Heights</option>
+                                    <option value="StoneBr">StoneBr - Stone Brook</option>
+                                    <option value="Timber">Timber - Timberland</option>
+                                    <option value="Veenker">Veenker - Veenker</option>
                                 </select>
+                                <div class="error-text" id="neighborhood-error"></div>
                             </div>
                             <div class="prediction-form-group">
                                 <label for="prediction-bedrooms">Bedrooms</label>
-                                <input type="number" id="prediction-bedrooms" class="form-control" min="1" max="10" value="3">
+                                <input type="number" id="prediction-bedrooms" class="form-control" min="1" max="10" value="3" required>
+                                <div class="error-text" id="bedrooms-error"></div>
                             </div>
                             <div class="prediction-form-group">
                                 <label for="prediction-bathrooms">Bathrooms</label>
-                                <input type="number" id="prediction-bathrooms" class="form-control" min="1" max="8" step="0.5" value="2">
+                                <input type="number" id="prediction-bathrooms" class="form-control" min="1" max="8" step="0.5" value="2" required>
+                                <div class="error-text" id="bathrooms-error"></div>
                             </div>
                         </div>
 
@@ -1280,15 +1452,18 @@
                             <h3><i class="fas fa-expand-arrows-alt"></i> Property Size</h3>
                             <div class="prediction-form-group">
                                 <label for="prediction-living-area">Living Area (sqft)</label>
-                                <input type="number" id="prediction-living-area" class="form-control" min="500" max="10000" value="1500">
+                                <input type="number" id="prediction-living-area" class="form-control" min="500" max="10000" value="1500" required>
+                                <div class="error-text" id="living-area-error"></div>
                             </div>
                             <div class="prediction-form-group">
                                 <label for="prediction-lot-area">Lot Area (sqft)</label>
-                                <input type="number" id="prediction-lot-area" class="form-control" min="1000" max="50000" value="5000">
+                                <input type="number" id="prediction-lot-area" class="form-control" min="1000" max="50000" value="5000" required>
+                                <div class="error-text" id="lot-area-error"></div>
                             </div>
                             <div class="prediction-form-group">
                                 <label for="prediction-year-built">Year Built</label>
-                                <input type="number" id="prediction-year-built" class="form-control" min="1800" max="2024" value="1995">
+                                <input type="number" id="prediction-year-built" class="form-control" min="1800" max="2024" value="1995" required>
+                                <div class="error-text" id="year-built-error"></div>
                             </div>
                         </div>
 
@@ -1297,21 +1472,21 @@
                             <h3><i class="fas fa-star"></i> Quality & Condition</h3>
                             <div class="prediction-form-group">
                                 <label for="prediction-overall-qual">Overall Quality (1-10)</label>
-                                <input type="range" id="prediction-overall-qual" class="form-control" min="1" max="10" value="5">
+                                <input type="range" id="prediction-overall-qual" class="form-control" min="1" max="10" value="5" required>
                                 <div class="help-text">
                                     <span id="qual-value">5 - Average</span>
                                 </div>
                             </div>
                             <div class="prediction-form-group">
                                 <label for="prediction-overall-cond">Overall Condition (1-10)</label>
-                                <input type="range" id="prediction-overall-cond" class="form-control" min="1" max="10" value="5">
+                                <input type="range" id="prediction-overall-cond" class="form-control" min="1" max="10" value="5" required>
                                 <div class="help-text">
                                     <span id="cond-value">5 - Average</span>
                                 </div>
                             </div>
                             <div class="prediction-form-group">
                                 <label for="prediction-garage-cars">Garage Size (cars)</label>
-                                <select id="prediction-garage-cars" class="form-control">
+                                <select id="prediction-garage-cars" class="form-control" required>
                                     <option value="0">No Garage</option>
                                     <option value="1">1 Car</option>
                                     <option value="2" selected>2 Cars</option>
@@ -1326,7 +1501,7 @@
                         <button type="button" class="btn btn-secondary" onclick="resetPredictionForm()">
                             <i class="fas fa-redo"></i> Reset
                         </button>
-                        <button type="button" class="btn btn-primary" onclick="getPrediction()">
+                        <button type="button" class="btn btn-primary" onclick="getPrediction()" id="predict-button">
                             <i class="fas fa-bolt"></i> Get Price Prediction
                         </button>
                     </div>
@@ -1372,40 +1547,33 @@
                         </div>
                         <p class="upload-info">Drag and drop your CSV file or click to browse</p>
                         
-                        <div class="form-group">
-                            <label for="bulk-csv-file">Select CSV File</label>
-                            <input type="file" id="bulk-csv-file" accept=".csv" class="form-control">
-                            <div class="file-info" id="bulk-file-info">No file selected</div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="bulk-model-version">Model Version</label>
-                            <select id="bulk-model-version" class="form-control">
-                                <option value="xgboost-v2.1">XGBoost v2.1 (Current)</option>
-                                <option value="xgboost-v2.0">XGBoost v2.0</option>
-                                <option value="xgboost-v1.5">XGBoost v1.5</option>
-                                <option value="random-forest">Random Forest</option>
-                                <option value="neural-network">Neural Network</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="prediction-speed">Prediction Speed</label>
-                            <select id="prediction-speed" class="form-control">
-                                <option value="fast">Fast (Lower Accuracy)</option>
-                                <option value="balanced" selected>Balanced</option>
-                                <option value="accurate">Most Accurate (Slower)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="downloadTemplate()">
-                                <i class="fas fa-download"></i> Download Template
-                            </button>
-                            <button type="button" class="btn btn-primary" onclick="processBulkUpload()">
-                                <i class="fas fa-bolt"></i> Process File
-                            </button>
-                        </div>
+                        <form id="bulk-upload-form" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="bulk-csv-file">Select CSV File</label>
+                                <input type="file" id="bulk-csv-file" name="file" accept=".csv" required>
+                                <div class="file-info" id="bulk-file-info">No file selected</div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bulk-model-version">Model Version</label>
+                                <select id="bulk-model-version" name="model_version">
+                                    <option value="xgboost-v2.1">XGBoost v2.1 (Current)</option>
+                                    <option value="xgboost-v2.0">XGBoost v2.0</option>
+                                    <option value="xgboost-v1.5">XGBoost v1.5</option>
+                                    <option value="random-forest">Random Forest</option>
+                                    <option value="neural-network">Neural Network</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-bolt"></i> Process File
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="downloadTemplate()">
+                                    <i class="fas fa-download"></i> Download Template
+                                </button>
+                            </div>
+                        </form>
                     </div>
                     
                     <div class="upload-status" id="bulk-upload-status">
@@ -1461,6 +1629,9 @@
                     <div class="header-left">
                         <h1>Market Insights</h1>
                         <p class="subtitle">Analytics and trends in the real estate market</p>
+                        <button class="refresh-insights" onclick="refreshInsights()" style="margin-top: 10px;">
+                            <i class="fas fa-sync-alt"></i> Refresh Insights
+                        </button>
                     </div>
                     <div class="date-display" id="insights-date"></div>
                 </header>
@@ -1478,11 +1649,23 @@
                         </div>
                         <div class="insight-stats">
                             <div class="stat-item">
-                                <div class="stat-value" id="avg-price-trend">+5.2%</div>
+                                <div class="stat-value" id="avg-price-trend">
+                                    <div class="loading-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
                                 <div class="stat-label">Avg Price Change</div>
                             </div>
                             <div class="stat-item">
-                                <div class="stat-value" id="days-on-market">42</div>
+                                <div class="stat-value" id="days-on-market">
+                                    <div class="loading-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
                                 <div class="stat-label">Days on Market</div>
                             </div>
                         </div>
@@ -1500,11 +1683,23 @@
                         </div>
                         <div class="insight-stats">
                             <div class="stat-item">
-                                <div class="stat-value" id="top-neighborhood-1">NoRidge</div>
+                                <div class="stat-value" id="top-neighborhood-1">
+                                    <div class="loading-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
                                 <div class="stat-label">#1 Neighborhood</div>
                             </div>
                             <div class="stat-item">
-                                <div class="stat-value" id="top-price">$750K</div>
+                                <div class="stat-value" id="top-price">
+                                    <div class="loading-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
                                 <div class="stat-label">Avg Price</div>
                             </div>
                         </div>
@@ -1522,11 +1717,23 @@
                         </div>
                         <div class="insight-stats">
                             <div class="stat-item">
-                                <div class="stat-value" id="top-feature">Quality</div>
+                                <div class="stat-value" id="top-feature">
+                                    <div class="loading-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
                                 <div class="stat-label">Most Impactful</div>
                             </div>
                             <div class="stat-item">
-                                <div class="stat-value" id="feature-impact">85%</div>
+                                <div class="stat-value" id="feature-impact">
+                                    <div class="loading-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
                                 <div class="stat-label">Impact Score</div>
                             </div>
                         </div>
@@ -1544,11 +1751,23 @@
                         </div>
                         <div class="insight-stats">
                             <div class="stat-item">
-                                <div class="stat-value" id="model-accuracy">91.36%</div>
+                                <div class="stat-value" id="model-accuracy">
+                                    <div class="loading-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
                                 <div class="stat-label">Accuracy Rate</div>
                             </div>
                             <div class="stat-item">
-                                <div class="stat-value" id="error-margin">±3.2%</div>
+                                <div class="stat-value" id="error-margin">
+                                    <div class="loading-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
                                 <div class="stat-label">Error Margin</div>
                             </div>
                         </div>
@@ -1632,19 +1851,6 @@
                         <h3><i class="fas fa-chart-bar"></i> Display Settings</h3>
                         <div class="settings-item">
                             <div class="settings-info">
-                                <h4>Default Charts</h4>
-                                <p>Select which charts to display by default</p>
-                            </div>
-                            <div class="settings-control">
-                                <select id="default-charts">
-                                    <option value="all">All Charts</option>
-                                    <option value="essential">Essential Charts Only</option>
-                                    <option value="custom">Custom Selection</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="settings-item">
-                            <div class="settings-info">
                                 <h4>Price Format</h4>
                                 <p>How to display prices</p>
                             </div>
@@ -1664,50 +1870,6 @@
                             <div class="settings-control">
                                 <label class="toggle-switch">
                                     <input type="checkbox" id="show-animations" checked>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="settings-section">
-                        <h3><i class="fas fa-cog"></i> Model Settings</h3>
-                        <div class="settings-item">
-                            <div class="settings-info">
-                                <h4>Default Model</h4>
-                                <p>Select the default prediction model</p>
-                            </div>
-                            <div class="settings-control">
-                                <select id="default-model">
-                                    <option value="xgboost-v2.1" selected>XGBoost v2.1</option>
-                                    <option value="xgboost-v2.0">XGBoost v2.0</option>
-                                    <option value="random-forest">Random Forest</option>
-                                    <option value="ensemble">Ensemble Model</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="settings-item">
-                            <div class="settings-info">
-                                <h4>Confidence Threshold</h4>
-                                <p>Minimum confidence level for predictions</p>
-                            </div>
-                            <div class="settings-control">
-                                <select id="confidence-threshold">
-                                    <option value="80">80%</option>
-                                    <option value="85">85%</option>
-                                    <option value="90" selected>90%</option>
-                                    <option value="95">95%</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="settings-item">
-                            <div class="settings-info">
-                                <h4>Show Prediction Details</h4>
-                                <p>Display detailed prediction breakdown</p>
-                            </div>
-                            <div class="settings-control">
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="show-details" checked>
                                     <span class="toggle-slider"></span>
                                 </label>
                             </div>
@@ -1734,12 +1896,17 @@
 
 <script>
     // API Configuration
-    const API_BASE_URL = 'http://127.0.0.1:8000/'; 
-    const API_ENDPOINT = `${API_BASE_URL}dashboard/model-prediction/`;
+    const API_BASE_URL = 'http://127.0.0.1:8000';
+    const API_ENDPOINTS = {
+        PREDICTIONS: `${API_BASE_URL}/dashboard/model-prediction/`,
+        INSIGHTS: `${API_BASE_URL}/dashboard/api/market-insights/`,
+        ANALYZE: `${API_BASE_URL}/dashboard/api/analyze-property/`,
+        RECOMMENDATIONS: `${API_BASE_URL}/dashboard/api/get-recommendations/`
+    };
     
     // Global data storage
     let properties = [];
-    let isAPIConnected = false;
+    let insightsData = null;
     let currentPage = 'dashboard';
     
     // Chart instances
@@ -1750,161 +1917,117 @@
     let seasonalChart = null;
     let propertyTypeChart = null;
 
+    // Utility Functions
+    function getCsrfToken() {
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        return cookieValue || '';
+    }
+
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-content">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            </div>
+            <button class="toast-close" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 5000);
+    }
+
     // Initialize the application
     document.addEventListener('DOMContentLoaded', function() {
         console.log('🚀 Initializing Real Estate Analytics Dashboard...');
         
-        // Initialize all pages
-        initializeDashboard();
-        initializePredictions();
-        initializeInsights();
-        initializeSettings();
+        // Setup all pages
+        setupDashboard();
+        setupPredictions();
+        setupUpload();
+        setupInsights();
+        setupSettings();
+        setupMobileMenu();
         
-        // Setup event listeners
-        setupEventListeners();
-        
-        // Check API connection
-        checkAPIConnection();
-        
-        // Load initial data
-        setTimeout(() => {
-            if (isAPIConnected) {
-                loadInitialData();
-            }
-        }, 1000);
-        
-        // Update dates
+        // Initialize dates
         updateAllDates();
         
-        // Setup mobile menu
-        setupMobileMenu();
+        // Load initial data
+        checkAPIConnection();
+        loadPredictions();
+        loadInsights();
+        
+        // Set up auto-refresh
+        setupAutoRefresh();
     });
-
-    // Setup mobile menu toggle
-    function setupMobileMenu() {
-        const mobileToggle = document.getElementById('mobileMenuToggle');
-        const sidebar = document.getElementById('sidebar');
-        
-        mobileToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('active');
-        });
-        
-        // Close sidebar when clicking outside on mobile
-        document.addEventListener('click', function(event) {
-            if (window.innerWidth <= 768) {
-                if (!sidebar.contains(event.target) && !mobileToggle.contains(event.target)) {
-                    sidebar.classList.remove('active');
-                }
-            }
-        });
-    }
-
-    // Switch between pages
-    function switchPage(page) {
-        // Update active menu item
-        document.querySelectorAll('.nav-menu li').forEach(li => {
-            li.classList.remove('active');
-        });
-        
-        // Update active page
-        document.querySelectorAll('.page-content').forEach(content => {
-            content.classList.remove('active');
-        });
-        
-        // Set new active page and menu
-        currentPage = page;
-        document.getElementById(`${page}-page`).classList.add('active');
-        document.querySelector(`.nav-menu a[onclick="switchPage('${page}')"]`).parentElement.classList.add('active');
-        
-        // Update page-specific date display
-        updatePageDate(page);
-        
-        // Close mobile menu on page switch
-        if (window.innerWidth <= 768) {
-            document.getElementById('sidebar').classList.remove('active');
-        }
-        
-        // Page-specific initializations
-        switch(page) {
-            case 'dashboard':
-                initializeCharts();
-                break;
-            case 'predictions':
-                updatePredictionSliders();
-                break;
-            case 'insights':
-                initializeInsightCharts();
-                break;
-        }
-    }
-
-    // Update all date displays
-    function updateAllDates() {
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const date = new Date().toLocaleDateString('en-US', options);
-        
-        // Update all date displays
-        document.getElementById('current-date').textContent = date;
-        document.getElementById('predictions-date').textContent = date;
-        document.getElementById('upload-date').textContent = date;
-        document.getElementById('insights-date').textContent = date;
-        document.getElementById('settings-date').textContent = date;
-    }
-
-    function updatePageDate(page) {
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const date = new Date().toLocaleDateString('en-US', options);
-        document.getElementById(`${page}-date`).textContent = date;
-    }
 
     // API Connection
     async function checkAPIConnection() {
-        const apiStatusDiv = document.querySelector('#api-status span:last-child');
-        const statusDot = document.querySelector('.status-dot');
+        const apiStatusDiv = document.querySelector('#api-status');
+        const statusText = apiStatusDiv.querySelector('span:last-child');
+        const statusDot = apiStatusDiv.querySelector('.status-dot');
         
         try {
-            const response = await fetch(API_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ test: true })
+            // Try to connect to predictions endpoint
+            const response = await axios.post(API_ENDPOINTS.PREDICTIONS, {
+                test: true
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
             });
             
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success !== undefined) {
-                    isAPIConnected = true;
-                    apiStatusDiv.textContent = 'Connected';
-                    statusDot.style.background = 'white';
-                    document.getElementById('api-status').style.background = '#10b981';
-                    console.log('✅ API Connection successful');
-                    return true;
-                }
+            if (response.data.success) {
+                apiStatusDiv.style.background = '#10b981';
+                statusText.textContent = 'Connected';
+                showToast('API connected successfully', 'success');
+                return true;
             }
-            throw new Error(`API returned status: ${response.status}`);
-            
         } catch (error) {
-            isAPIConnected = false;
-            apiStatusDiv.textContent = 'Disconnected';
-            statusDot.style.background = 'white';
-            document.getElementById('api-status').style.background = '#ef4444';
-            console.error('❌ API Connection Error:', error);
+            console.warn('API connection failed:', error.message);
+        }
+        
+        // Fallback to test connection
+        try {
+            const testResponse = await fetch(API_BASE_URL);
+            if (testResponse.ok) {
+                apiStatusDiv.style.background = '#f59e0b';
+                statusText.textContent = 'Connected (Test Mode)';
+                showToast('Using test mode - predictions may be limited', 'warning');
+                return true;
+            }
+        } catch (error) {
+            apiStatusDiv.style.background = '#ef4444';
+            statusText.textContent = 'Disconnected';
+            showToast('Cannot connect to server. Please start Django server.', 'error');
             return false;
         }
     }
 
     // Dashboard Functions
-    function initializeDashboard() {
+    function setupDashboard() {
         // CSV file input handler
         const csvFileInput = document.getElementById('csv-file');
         if (csvFileInput) {
             csvFileInput.addEventListener('change', function(e) {
-                const fileName = e.target.files[0]?.name || 'No file selected';
-                const fileSize = e.target.files[0]?.size || 0;
+                const file = e.target.files[0];
                 const fileInfo = document.getElementById('file-info');
                 
-                if (fileSize > 0) {
-                    const sizeInMB = (fileSize / (1024 * 1024)).toFixed(2);
-                    fileInfo.textContent = `${fileName} (${sizeInMB} MB)`;
+                if (file) {
+                    const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                    fileInfo.textContent = `${file.name} (${sizeInMB} MB)`;
                     fileInfo.style.color = '#10b981';
                 } else {
                     fileInfo.textContent = 'No file selected';
@@ -1918,68 +2041,73 @@
         if (csvUploadForm) {
             csvUploadForm.addEventListener('submit', handleCSVUpload);
         }
-        
-        // Refresh button
-        const refreshBtn = document.getElementById('refresh-predictions');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', handleRefresh);
-        }
-        
-        // Sample data button
-        const sampleDataBtn = document.getElementById('sample-data-btn');
-        if (sampleDataBtn) {
-            sampleDataBtn.addEventListener('click', handleSampleData);
-        }
     }
 
-    async function loadInitialData() {
-        if (!isAPIConnected) {
-            console.log('Skipping initial data load - API not connected');
-            return;
+    async function loadPredictions() {
+        const tbody = document.getElementById('predictions-table-body');
+        const refreshBtn = document.getElementById('refresh-predictions');
+        
+        // Show loading state
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 40px;">
+                    <div class="loading-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <p style="margin-top: 10px; color: #64748b;">Loading predictions...</p>
+                </td>
+            </tr>
+        `;
+        
+        if (refreshBtn) {
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            refreshBtn.disabled = true;
         }
         
         try {
-            const response = await fetch(API_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ test: true })
+            const response = await axios.post(API_ENDPOINTS.PREDICTIONS, {
+                test: true
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
             });
             
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            
-            const data = await response.json();
-            
-            if (data.success && data.prediction) {
-                properties = [{
-                    id: 1461,
-                    bedrooms: 2,
-                    bathrooms: 1,
-                    sqft_living: 896,
-                    neighborhood: 'NAmes',
-                    year_built: 1961,
-                    predicted_price: data.prediction
-                }];
+            if (response.data.success) {
+                if (response.data.predictions && response.data.predictions.length > 0) {
+                    properties = response.data.predictions;
+                    updateKPIMetrics();
+                    populateTable();
+                    updateCharts();
+                } else if (response.data.prediction) {
+                    // Single prediction returned
+                    properties = [{
+                        id: 1461,
+                        bedrooms: 2,
+                        bathrooms: 1,
+                        sqft_living: 896,
+                        neighborhood: 'NAmes',
+                        year_built: 1961,
+                        predicted_price: response.data.prediction
+                    }];
+                    updateKPIMetrics();
+                    populateTable();
+                    updateCharts();
+                }
                 
-                updateKPIMetrics();
-                populateTable();
-                initializeCharts();
-                
-                const uploadStatusDiv = document.getElementById('upload-status');
-                uploadStatusDiv.innerHTML = `
-                    <i class="fas fa-check-circle"></i> 
-                    API Connected - Ready for upload
-                    <br>
-                    <small>Test prediction loaded: $${data.prediction.toLocaleString()}</small>
-                `;
-                uploadStatusDiv.style.color = '#10b981';
-                uploadStatusDiv.style.backgroundColor = '#f0f9ff';
+                showToast(`Loaded ${properties.length} predictions`, 'success');
             }
         } catch (error) {
-            console.error('Error loading initial data:', error);
-            properties = [];
-            updateKPIMetrics();
-            populateTable();
-            initializeCharts();
+            console.error('Error loading predictions:', error);
+            showToast('Failed to load predictions', 'error');
+        } finally {
+            if (refreshBtn) {
+                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+                refreshBtn.disabled = false;
+            }
         }
     }
 
@@ -2002,14 +2130,14 @@
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
         
-        document.getElementById('avg-price').textContent = '$' + avgPrice.toLocaleString();
-        document.getElementById('min-price').textContent = '$' + minPrice.toLocaleString();
-        document.getElementById('max-price').textContent = '$' + maxPrice.toLocaleString();
+        document.getElementById('avg-price').textContent = `$${avgPrice.toLocaleString()}`;
+        document.getElementById('min-price').textContent = `$${minPrice.toLocaleString()}`;
+        document.getElementById('max-price').textContent = `$${maxPrice.toLocaleString()}`;
         document.getElementById('total-properties').textContent = properties.length.toLocaleString();
         
         document.querySelector('#avg-price').nextElementSibling.innerHTML = '<i class="fas fa-check-circle"></i> Updated';
-        document.querySelector('#min-price').nextElementSibling.innerHTML = '<i class="fas fa-check-circle"></i> From API';
-        document.querySelector('#max-price').nextElementSibling.innerHTML = '<i class="fas fa-check-circle"></i> From API';
+        document.querySelector('#min-price').nextElementSibling.innerHTML = '<i class="fas fa-check-circle"></i> Live Data';
+        document.querySelector('#max-price').nextElementSibling.innerHTML = '<i class="fas fa-check-circle"></i> Live Data';
         document.querySelector('#total-properties').nextElementSibling.innerHTML = '<i class="fas fa-check-circle"></i> Live Data';
     }
 
@@ -2050,8 +2178,8 @@
         document.getElementById('total-rows').textContent = properties.length;
     }
 
-    function initializeCharts() {
-        // Destroy existing charts if they exist
+    function updateCharts() {
+        // Destroy existing charts
         if (priceDistributionChart) priceDistributionChart.destroy();
         if (bedroomsPriceChart) bedroomsPriceChart.destroy();
         if (neighborhoodChart) neighborhoodChart.destroy();
@@ -2070,7 +2198,7 @@
             return;
         }
         
-        // Create all charts
+        // Create charts
         createPriceDistributionChart();
         createBedroomsPriceChart();
         createNeighborhoodChart();
@@ -2079,28 +2207,13 @@
 
     function createPriceDistributionChart() {
         const ctx = document.getElementById('priceDistributionChart').getContext('2d');
-        
-        if (properties.length === 0) {
-            priceDistributionChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['No Data'],
-                    datasets: [{
-                        label: 'Number of Properties',
-                        data: [0],
-                        backgroundColor: 'rgba(102, 126, 234, 0.7)'
-                    }]
-                }
-            });
-            return;
-        }
-        
         const prices = properties.map(p => p.predicted_price || 0);
-        const maxPrice = Math.max(...prices);
+        
+        // Create price bins
         const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
         const binSize = Math.ceil((maxPrice - minPrice) / 10);
         
-        // Create bins
         const bins = Array(10).fill(0);
         const labels = [];
         
@@ -2150,22 +2263,6 @@
 
     function createBedroomsPriceChart() {
         const ctx = document.getElementById('bedroomsPriceChart').getContext('2d');
-        
-        if (properties.length === 0) {
-            bedroomsPriceChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['No Data'],
-                    datasets: [{
-                        label: 'Average Price',
-                        data: [0],
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        borderColor: 'rgba(255, 99, 132, 1)'
-                    }]
-                }
-            });
-            return;
-        }
         
         // Group by bedrooms
         const bedroomsData = {};
@@ -2221,9 +2318,6 @@
                                 return '$' + value.toLocaleString();
                             }
                         }
-                    },
-                    x: {
-                        title: { display: true, text: 'Number of Bedrooms' }
                     }
                 }
             }
@@ -2232,23 +2326,6 @@
 
     function createNeighborhoodChart() {
         const ctx = document.getElementById('neighborhoodChart').getContext('2d');
-        
-        if (properties.length === 0) {
-            neighborhoodChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['No Data'],
-                    datasets: [
-                        {
-                            label: 'Average Price',
-                            data: [0],
-                            backgroundColor: 'rgba(54, 162, 235, 0.7)'
-                        }
-                    ]
-                }
-            });
-            return;
-        }
         
         // Group by neighborhood
         const neighborhoodData = {};
@@ -2263,7 +2340,7 @@
             neighborhoodData[neighborhood].count++;
         });
         
-        // Get top 8 neighborhoods by count
+        // Get top 8 neighborhoods
         const sortedNeighborhoods = Object.entries(neighborhoodData)
             .sort((a, b) => b[1].count - a[1].count)
             .slice(0, 8);
@@ -2272,31 +2349,18 @@
         const avgPrices = sortedNeighborhoods.map(([, data]) => 
             Math.round(data.total / data.count)
         );
-        const counts = sortedNeighborhoods.map(([, data]) => data.count);
         
         neighborhoodChart = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [
-                    {
-                        label: 'Average Price',
-                        data: avgPrices,
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Property Count',
-                        data: counts,
-                        backgroundColor: 'rgba(255, 206, 86, 0.7)',
-                        borderColor: 'rgba(255, 206, 86, 1)',
-                        borderWidth: 1,
-                        yAxisID: 'y1',
-                        type: 'line'
-                    }
-                ]
+                datasets: [{
+                    label: 'Average Price',
+                    data: avgPrices,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
             },
             options: {
                 responsive: true,
@@ -2306,22 +2370,13 @@
                 },
                 scales: {
                     y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
+                        beginAtZero: false,
                         title: { display: true, text: 'Average Price ($)' },
                         ticks: {
                             callback: function(value) {
                                 return '$' + value.toLocaleString();
                             }
                         }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        title: { display: true, text: 'Property Count' },
-                        grid: { drawOnChartArea: false }
                     }
                 }
             }
@@ -2330,21 +2385,6 @@
 
     function createYearBuiltChart() {
         const ctx = document.getElementById('yearBuiltChart').getContext('2d');
-        
-        if (properties.length === 0) {
-            yearBuiltChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['No Data'],
-                    datasets: [{
-                        label: 'Average Price by Decade',
-                        data: [0],
-                        backgroundColor: 'rgba(75, 192, 192, 0.7)'
-                    }]
-                }
-            });
-            return;
-        }
         
         // Group by decade
         const decadeData = {};
@@ -2375,7 +2415,7 @@
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Average Price by Decade',
+                    label: 'Average Price',
                     data: avgPrices,
                     backgroundColor: 'rgba(75, 192, 192, 0.7)',
                     borderColor: 'rgba(75, 192, 192, 1)',
@@ -2404,9 +2444,6 @@
                                 return '$' + value.toLocaleString();
                             }
                         }
-                    },
-                    x: {
-                        title: { display: true, text: 'Construction Decade' }
                     }
                 }
             }
@@ -2416,144 +2453,54 @@
     async function handleCSVUpload(e) {
         e.preventDefault();
         const uploadStatusDiv = document.getElementById('upload-status');
-        const fileInput = document.getElementById('csv-file');
+        const form = e.target;
+        const formData = new FormData(form);
         
-        if (!isAPIConnected) {
-            uploadStatusDiv.innerHTML = `
-                <i class="fas fa-exclamation-triangle"></i> 
-                Cannot upload - API not connected
-                <br>
-                <small>Start your Django server first: python manage.py runserver</small>
-            `;
-            uploadStatusDiv.style.color = '#ef4444';
-            uploadStatusDiv.style.backgroundColor = '#fee2e2';
-            return;
-        }
-        
-        if (!fileInput || !fileInput.files[0]) {
-            uploadStatusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please select a CSV file first!';
-            uploadStatusDiv.style.color = '#f59e0b';
-            uploadStatusDiv.style.backgroundColor = '#fffbeb';
-            return;
-        }
-        
-        const fileName = fileInput.files[0].name.toLowerCase();
-        if (!fileName.endsWith('.csv')) {
-            uploadStatusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please select a CSV file (.csv extension)!';
-            uploadStatusDiv.style.color = '#f59e0b';
-            uploadStatusDiv.style.backgroundColor = '#fffbeb';
-            return;
-        }
-        
-        uploadStatusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading and processing predictions...';
+        uploadStatusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading and processing...';
         uploadStatusDiv.style.color = '#64748b';
-        uploadStatusDiv.style.backgroundColor = '#f8fafc';
-        
-        const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
         
         try {
-            const response = await fetch(API_ENDPOINT, {
-                method: 'POST',
-                body: formData
+            const response = await axios.post(API_ENDPOINTS.PREDICTIONS, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRFToken': getCsrfToken()
+                }
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.success && data.predictions) {
-                properties = data.predictions;
+            if (response.data.success) {
+                properties = response.data.predictions || [];
                 
                 updateKPIMetrics();
                 populateTable();
-                initializeCharts();
+                updateCharts();
                 
                 uploadStatusDiv.innerHTML = `
                     <i class="fas fa-check-circle"></i> 
-                    Successfully processed ${data.count || data.predictions.length} properties!
-                    <br>
-                    <small>Visualizations updated automatically</small>
+                    Successfully processed ${response.data.count || properties.length} properties!
                 `;
                 uploadStatusDiv.style.color = '#10b981';
-                uploadStatusDiv.style.backgroundColor = '#f0f9ff';
                 
                 // Reset form
-                fileInput.value = '';
+                form.reset();
                 document.getElementById('file-info').textContent = 'No file selected';
-                document.getElementById('file-info').style.color = '#64748b';
+                
+                showToast(`Processed ${properties.length} properties successfully`, 'success');
             } else {
-                throw new Error(data.error || 'Unknown error occurred');
+                throw new Error(response.data.error || 'Upload failed');
             }
         } catch (error) {
             console.error('Upload Error:', error);
             uploadStatusDiv.innerHTML = `
                 <i class="fas fa-exclamation-triangle"></i> 
                 Upload failed: ${error.message}
-                <br>
-                <small>Make sure your CSV has the required columns</small>
             `;
             uploadStatusDiv.style.color = '#ef4444';
-            uploadStatusDiv.style.backgroundColor = '#fee2e2';
+            showToast('Upload failed: ' + error.message, 'error');
         }
-    }
-
-    async function handleRefresh() {
-        const refreshBtn = document.getElementById('refresh-predictions');
-        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-        refreshBtn.disabled = true;
-        
-        await checkAPIConnection();
-        
-        if (isAPIConnected) {
-            await loadInitialData();
-        }
-        
-        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
-        refreshBtn.disabled = false;
-        
-        const uploadStatusDiv = document.getElementById('upload-status');
-        if (isAPIConnected) {
-            uploadStatusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Data refreshed!';
-            uploadStatusDiv.style.color = '#10b981';
-            uploadStatusDiv.style.backgroundColor = '#f0f9ff';
-        } else {
-            uploadStatusDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> API not connected';
-            uploadStatusDiv.style.color = '#ef4444';
-            uploadStatusDiv.style.backgroundColor = '#fee2e2';
-        }
-        
-        setTimeout(() => {
-            uploadStatusDiv.innerHTML = 'Ready for upload';
-            uploadStatusDiv.style.color = '#64748b';
-            uploadStatusDiv.style.backgroundColor = 'white';
-        }, 3000);
-    }
-
-    function handleSampleData() {
-        // Create sample data
-        properties = [
-            { id: 1, bedrooms: 3, bathrooms: 2, sqft_living: 1500, neighborhood: 'NAmes', year_built: 1995, predicted_price: 245000 },
-            { id: 2, bedrooms: 4, bathrooms: 3, sqft_living: 2200, neighborhood: 'CollgCr', year_built: 2005, predicted_price: 385000 },
-            { id: 3, bedrooms: 2, bathrooms: 1, sqft_living: 1100, neighborhood: 'OldTown', year_built: 1975, predicted_price: 185000 },
-            { id: 4, bedrooms: 5, bathrooms: 4, sqft_living: 3200, neighborhood: 'Somerst', year_built: 2010, predicted_price: 520000 },
-            { id: 5, bedrooms: 3, bathrooms: 2, sqft_living: 1800, neighborhood: 'Edwards', year_built: 1985, predicted_price: 215000 }
-        ];
-        
-        updateKPIMetrics();
-        populateTable();
-        initializeCharts();
-        
-        const uploadStatusDiv = document.getElementById('upload-status');
-        uploadStatusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Sample data loaded successfully!';
-        uploadStatusDiv.style.color = '#10b981';
-        uploadStatusDiv.style.backgroundColor = '#f0f9ff';
     }
 
     // Predictions Page Functions
-    function initializePredictions() {
+    function setupPredictions() {
         // Setup slider event listeners
         const qualSlider = document.getElementById('prediction-overall-qual');
         const condSlider = document.getElementById('prediction-overall-cond');
@@ -2569,6 +2516,9 @@
                 document.getElementById('cond-value').textContent = `${this.value} - ${getConditionDescription(this.value)}`;
             });
         }
+        
+        // Initialize slider values
+        updatePredictionSliders();
     }
 
     function getQualityDescription(value) {
@@ -2605,17 +2555,15 @@
     }
 
     async function getPrediction() {
-        if (!isAPIConnected) {
-            alert('Please connect to the API first. Start your Django server.');
-            return;
-        }
+        const predictButton = document.getElementById('predict-button');
+        const originalText = predictButton.innerHTML;
         
         // Collect form data
         const formData = {
             BedroomAbvGr: parseInt(document.getElementById('prediction-bedrooms').value) || 0,
             FullBath: parseFloat(document.getElementById('prediction-bathrooms').value) || 0,
             GrLivArea: parseInt(document.getElementById('prediction-living-area').value) || 0,
-            Neighborhood: document.getElementById('prediction-neighborhood').value || 'NAmes',
+            Neighborhood: document.getElementById('prediction-neighborhood').value,
             YearBuilt: parseInt(document.getElementById('prediction-year-built').value) || 1995,
             LotArea: parseInt(document.getElementById('prediction-lot-area').value) || 5000,
             OverallQual: parseInt(document.getElementById('prediction-overall-qual').value) || 5,
@@ -2625,37 +2573,35 @@
         
         // Validation
         if (!formData.Neighborhood) {
-            alert('Please select a neighborhood.');
+            showToast('Please select a neighborhood', 'warning');
             return;
         }
         
         // Show loading state
+        predictButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Predicting...';
+        predictButton.disabled = true;
+        
         const predictionResult = document.getElementById('prediction-result');
         predictionResult.style.display = 'block';
-        document.getElementById('predicted-price').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         document.getElementById('prediction-success').style.display = 'block';
+        document.getElementById('predicted-price').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
         try {
-            const response = await fetch(API_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+            const response = await axios.post(API_ENDPOINTS.PREDICTIONS, formData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.success && data.prediction) {
-                const predictedPrice = Math.round(data.prediction);
+            if (response.data.success) {
+                const predictedPrice = Math.round(response.data.prediction);
                 const perSqft = Math.round(predictedPrice / formData.GrLivArea);
                 const confidence = Math.min(95 + (formData.OverallQual * 0.5), 99);
                 
                 // Update result display
                 document.getElementById('predicted-price').textContent = `$${predictedPrice.toLocaleString()}`;
-                document.getElementById('per-sqft').textContent = `$${perSqft.toLocaleString()}`;
+                document.getElementById('per-sqft').textContent = `$${perSqft.toLocaleString()}/sqft`;
                 document.getElementById('quality-score').textContent = `${formData.OverallQual}/10`;
                 document.getElementById('confidence-level').textContent = `${confidence.toFixed(1)}%`;
                 
@@ -2663,13 +2609,19 @@
                 const neighborhood = document.getElementById('prediction-neighborhood').options[document.getElementById('prediction-neighborhood').selectedIndex].text;
                 document.getElementById('prediction-description').textContent = 
                     `${formData.BedroomAbvGr} bedroom, ${formData.FullBath} bath property in ${neighborhood.split(' - ')[0]}`;
+                
+                showToast('Prediction completed successfully!', 'success');
             } else {
-                throw new Error(data.error || 'Prediction failed');
+                throw new Error(response.data.error || 'Prediction failed');
             }
         } catch (error) {
             console.error('Prediction Error:', error);
             document.getElementById('predicted-price').textContent = 'Error';
             document.getElementById('prediction-description').textContent = 'Failed to get prediction. Please try again.';
+            showToast('Prediction failed: ' + error.message, 'error');
+        } finally {
+            predictButton.innerHTML = originalText;
+            predictButton.disabled = false;
         }
     }
 
@@ -2681,17 +2633,16 @@
     }
 
     // Upload Page Functions
-    function initializeUpload() {
+    function setupUpload() {
         const bulkFileInput = document.getElementById('bulk-csv-file');
         if (bulkFileInput) {
             bulkFileInput.addEventListener('change', function(e) {
-                const fileName = e.target.files[0]?.name || 'No file selected';
-                const fileSize = e.target.files[0]?.size || 0;
+                const file = e.target.files[0];
                 const fileInfo = document.getElementById('bulk-file-info');
                 
-                if (fileSize > 0) {
-                    const sizeInMB = (fileSize / (1024 * 1024)).toFixed(2);
-                    fileInfo.textContent = `${fileName} (${sizeInMB} MB)`;
+                if (file) {
+                    const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                    fileInfo.textContent = `${file.name} (${sizeInMB} MB)`;
                     fileInfo.style.color = '#10b981';
                 } else {
                     fileInfo.textContent = 'No file selected';
@@ -2699,38 +2650,62 @@
                 }
             });
         }
+        
+        const bulkUploadForm = document.getElementById('bulk-upload-form');
+        if (bulkUploadForm) {
+            bulkUploadForm.addEventListener('submit', handleBulkUpload);
+        }
     }
 
-    async function processBulkUpload() {
-        const bulkFileInput = document.getElementById('bulk-csv-file');
+    async function handleBulkUpload(e) {
+        e.preventDefault();
         const uploadStatusDiv = document.getElementById('bulk-upload-status');
-        
-        if (!bulkFileInput || !bulkFileInput.files[0]) {
-            uploadStatusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please select a CSV file first!';
-            uploadStatusDiv.style.color = '#f59e0b';
-            uploadStatusDiv.style.backgroundColor = '#fffbeb';
-            return;
-        }
+        const form = e.target;
+        const formData = new FormData(form);
         
         uploadStatusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing bulk upload...';
         uploadStatusDiv.style.color = '#64748b';
-        uploadStatusDiv.style.backgroundColor = '#f8fafc';
         
-        // Simulate processing
-        setTimeout(() => {
-            uploadStatusDiv.innerHTML = `
-                <i class="fas fa-check-circle"></i> 
-                Bulk upload processed successfully!
-                <br>
-                <small>100 properties analyzed. Switch to Dashboard to view results.</small>
-            `;
-            uploadStatusDiv.style.color = '#10b981';
-            uploadStatusDiv.style.backgroundColor = '#f0f9ff';
+        try {
+            const response = await axios.post(API_ENDPOINTS.PREDICTIONS, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            });
             
-            // Reset form
-            bulkFileInput.value = '';
-            document.getElementById('bulk-file-info').textContent = 'No file selected';
-        }, 2000);
+            if (response.data.success) {
+                uploadStatusDiv.innerHTML = `
+                    <i class="fas fa-check-circle"></i> 
+                    Bulk upload processed successfully!
+                    <br>
+                    <small>${response.data.count || 0} properties analyzed. Switch to Dashboard to view results.</small>
+                `;
+                uploadStatusDiv.style.color = '#10b981';
+                
+                // Reset form
+                form.reset();
+                document.getElementById('bulk-file-info').textContent = 'No file selected';
+                
+                showToast(`Bulk upload processed ${response.data.count || 0} properties`, 'success');
+                
+                // Switch to dashboard and refresh
+                setTimeout(() => {
+                    switchPage('dashboard');
+                    loadPredictions();
+                }, 2000);
+            } else {
+                throw new Error(response.data.error || 'Bulk upload failed');
+            }
+        } catch (error) {
+            console.error('Bulk Upload Error:', error);
+            uploadStatusDiv.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i> 
+                Bulk upload failed: ${error.message}
+            `;
+            uploadStatusDiv.style.color = '#ef4444';
+            showToast('Bulk upload failed: ' + error.message, 'error');
+        }
     }
 
     function downloadTemplate() {
@@ -2750,38 +2725,119 @@
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
+        
+        showToast('Template downloaded successfully', 'success');
     }
 
     // Insights Page Functions
-    function initializeInsights() {
-        // Set mock insight data
-        document.getElementById('avg-price-trend').textContent = '+5.2%';
-        document.getElementById('days-on-market').textContent = '42';
-        document.getElementById('top-neighborhood-1').textContent = 'NoRidge';
-        document.getElementById('top-price').textContent = '$750K';
-        document.getElementById('top-feature').textContent = 'Quality';
-        document.getElementById('feature-impact').textContent = '85%';
-        document.getElementById('model-accuracy').textContent = '92.5%';
-        document.getElementById('error-margin').textContent = '±3.2%';
+    async function loadInsights() {
+        try {
+            // Try to fetch real insights
+            const response = await axios.get(API_ENDPOINTS.INSIGHTS, {
+                headers: {
+                    'X-CSRFToken': getCsrfToken()
+                }
+            });
+            
+            if (response.data.success) {
+                insightsData = response.data.insights;
+                updateInsightsCards();
+                updateInsightCharts();
+                showToast('Insights loaded successfully', 'success');
+            } else {
+                // Fallback to mock data
+                generateMockInsights();
+            }
+        } catch (error) {
+            console.warn('Failed to load insights, using mock data:', error.message);
+            generateMockInsights();
+        }
     }
 
-    function initializeInsightCharts() {
+    function generateMockInsights() {
+        // Generate realistic mock insights
+        insightsData = {
+            avg_price_trend: '+5.2%',
+            days_on_market: Math.floor(Math.random() * 20) + 30, // 30-50 days
+            top_neighborhoods: [
+                { name: 'NoRidge', avg_price: 750000 },
+                { name: 'StoneBr', avg_price: 720000 },
+                { name: 'NridgHt', avg_price: 680000 }
+            ],
+            feature_impact: [
+                { feature: 'OverallQual', impact: 0.85 },
+                { feature: 'GrLivArea', impact: 0.76 },
+                { feature: 'GarageCars', impact: 0.68 }
+            ],
+            model_metrics: {
+                accuracy: 91.5,
+                error_margin: 3.2
+            },
+            seasonal_trends: [
+                { month: 'Jan', avg_price: 280000 },
+                { month: 'Feb', avg_price: 285000 },
+                { month: 'Mar', avg_price: 295000 },
+                { month: 'Apr', avg_price: 305000 },
+                { month: 'May', avg_price: 315000 },
+                { month: 'Jun', avg_price: 325000 },
+                { month: 'Jul', avg_price: 320000 },
+                { month: 'Aug', avg_price: 310000 },
+                { month: 'Sep', avg_price: 300000 },
+                { month: 'Oct', avg_price: 290000 },
+                { month: 'Nov', avg_price: 285000 },
+                { month: 'Dec', avg_price: 280000 }
+            ],
+            property_distribution: [
+                { type: 'Single Family', percentage: 45 },
+                { type: 'Townhouse', percentage: 25 },
+                { type: 'Condo', percentage: 15 },
+                { type: 'Multi-Family', percentage: 10 },
+                { type: 'Luxury', percentage: 5 }
+            ]
+        };
+        
+        updateInsightsCards();
+        updateInsightCharts();
+    }
+
+    function updateInsightsCards() {
+        if (!insightsData) return;
+        
+        document.getElementById('avg-price-trend').textContent = insightsData.avg_price_trend;
+        document.getElementById('days-on-market').textContent = insightsData.days_on_market;
+        
+        if (insightsData.top_neighborhoods && insightsData.top_neighborhoods.length > 0) {
+            document.getElementById('top-neighborhood-1').textContent = insightsData.top_neighborhoods[0].name;
+            document.getElementById('top-price').textContent = `$${(insightsData.top_neighborhoods[0].avg_price / 1000).toFixed(0)}k`;
+        }
+        
+        if (insightsData.feature_impact && insightsData.feature_impact.length > 0) {
+            document.getElementById('top-feature').textContent = insightsData.feature_impact[0].feature;
+            document.getElementById('feature-impact').textContent = `${(insightsData.feature_impact[0].impact * 100).toFixed(0)}%`;
+        }
+        
+        if (insightsData.model_metrics) {
+            document.getElementById('model-accuracy').textContent = `${insightsData.model_metrics.accuracy.toFixed(1)}%`;
+            document.getElementById('error-margin').textContent = `±${insightsData.model_metrics.error_margin.toFixed(1)}%`;
+        }
+    }
+
+    function updateInsightCharts() {
+        if (!insightsData) return;
+        
+        // Destroy existing charts
         if (seasonalChart) seasonalChart.destroy();
         if (propertyTypeChart) propertyTypeChart.destroy();
         
-        createSeasonalChart();
-        createPropertyTypeChart();
-    }
-
-    function createSeasonalChart() {
-        const ctx = document.getElementById('seasonalChart').getContext('2d');
-        seasonalChart = new Chart(ctx, {
+        // Create seasonal chart
+        const seasonalCtx = document.getElementById('seasonalChart').getContext('2d');
+        seasonalChart = new Chart(seasonalCtx, {
             type: 'line',
             data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                labels: insightsData.seasonal_trends.map(t => t.month),
                 datasets: [{
                     label: 'Average Price',
-                    data: [280000, 285000, 295000, 305000, 315000, 325000, 320000, 310000, 300000, 290000, 285000, 280000],
+                    data: insightsData.seasonal_trends.map(t => t.avg_price),
                     borderColor: '#667eea',
                     backgroundColor: 'rgba(102, 126, 234, 0.1)',
                     borderWidth: 3,
@@ -2793,7 +2849,14 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: true, position: 'top' }
+                    legend: { display: true, position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Price: $${context.parsed.y.toLocaleString()}`;
+                            }
+                        }
+                    }
                 },
                 scales: {
                     y: {
@@ -2808,45 +2871,79 @@
                 }
             }
         });
-    }
-
-    function createPropertyTypeChart() {
-        const ctx = document.getElementById('propertyTypeChart').getContext('2d');
-        propertyTypeChart = new Chart(ctx, {
+        
+        // Create property type chart
+        const propertyCtx = document.getElementById('propertyTypeChart').getContext('2d');
+        propertyTypeChart = new Chart(propertyCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Single Family', 'Townhouse', 'Condo', 'Multi-Family', 'Luxury'],
+                labels: insightsData.property_distribution.map(p => p.type),
                 datasets: [{
-                    data: [45, 25, 15, 10, 5],
+                    data: insightsData.property_distribution.map(p => p.percentage),
                     backgroundColor: [
                         '#667eea',
                         '#764ba2',
                         '#f093fb',
                         '#4facfe',
                         '#fa709a'
-                    ]
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '65%',
                 plugins: {
                     legend: { 
                         display: true,
-                        position: 'right'
+                        position: 'right',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.label}: ${context.parsed}%`;
+                            }
+                        }
                     }
                 }
             }
         });
     }
 
+    async function refreshInsights() {
+        const refreshBtn = document.querySelector('.refresh-insights');
+        if (refreshBtn) {
+            refreshBtn.classList.add('refreshing');
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+        }
+        
+        await loadInsights();
+        
+        if (refreshBtn) {
+            setTimeout(() => {
+                refreshBtn.classList.remove('refreshing');
+                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Insights';
+                showToast('Insights refreshed successfully', 'success');
+            }, 500);
+        }
+    }
+
     // Settings Page Functions
-    function initializeSettings() {
-        // Load saved settings
+    function setupSettings() {
+        // Load saved settings from localStorage
         const savedSettings = JSON.parse(localStorage.getItem('dashboard-settings') || '{}');
         
+        // Apply saved settings
         if (savedSettings.theme) {
             document.getElementById('theme-selector').value = savedSettings.theme;
+            applyTheme(savedSettings.theme);
         }
         
         if (savedSettings.autoRefresh !== undefined) {
@@ -2864,18 +2961,6 @@
         if (savedSettings.showAnimations !== undefined) {
             document.getElementById('show-animations').checked = savedSettings.showAnimations;
         }
-        
-        if (savedSettings.defaultModel) {
-            document.getElementById('default-model').value = savedSettings.defaultModel;
-        }
-        
-        if (savedSettings.confidenceThreshold) {
-            document.getElementById('confidence-threshold').value = savedSettings.confidenceThreshold;
-        }
-        
-        if (savedSettings.showDetails !== undefined) {
-            document.getElementById('show-details').checked = savedSettings.showDetails;
-        }
     }
 
     function saveSettings() {
@@ -2884,16 +2969,13 @@
             autoRefresh: document.getElementById('auto-refresh').checked,
             refreshInterval: document.getElementById('refresh-interval').value,
             priceFormat: document.getElementById('price-format').value,
-            showAnimations: document.getElementById('show-animations').checked,
-            defaultModel: document.getElementById('default-model').value,
-            confidenceThreshold: document.getElementById('confidence-threshold').value,
-            showDetails: document.getElementById('show-details').checked
+            showAnimations: document.getElementById('show-animations').checked
         };
         
         localStorage.setItem('dashboard-settings', JSON.stringify(settings));
+        applyTheme(settings.theme);
         
-        // Show success message
-        alert('Settings saved successfully!');
+        showToast('Settings saved successfully!', 'success');
     }
 
     function resetSettings() {
@@ -2903,33 +2985,133 @@
         }
     }
 
-    // Setup event listeners
-    function setupEventListeners() {
-        // Initialize all page-specific event listeners
-        initializeDashboard();
-        initializePredictions();
-        initializeUpload();
-        initializeInsights();
-        initializeSettings();
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            document.body.style.background = '#1a202c';
+        } else if (theme === 'light') {
+            document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        } else {
+            // Auto theme based on system preference
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.body.style.background = '#1a202c';
+            } else {
+                document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            }
+        }
+    }
+
+    // Mobile Menu
+    function setupMobileMenu() {
+        const mobileToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
         
-        // Auto-refresh date every minute
-        setInterval(updateAllDates, 60000);
+        mobileToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('active');
+        });
         
-        // Auto-check API connection every 30 seconds
-        setInterval(checkAPIConnection, 30000);
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            if (window.innerWidth <= 768) {
+                if (!sidebar.contains(event.target) && !mobileToggle.contains(event.target)) {
+                    sidebar.classList.remove('active');
+                }
+            }
+        });
+    }
+
+    // Navigation
+    function switchPage(page) {
+        // Update active menu item
+        document.querySelectorAll('.nav-menu li').forEach(li => {
+            li.classList.remove('active');
+        });
+        
+        // Update active page
+        document.querySelectorAll('.page-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        // Set new active page and menu
+        currentPage = page;
+        document.getElementById(`${page}-page`).classList.add('active');
+        document.querySelector(`.nav-menu a[onclick="switchPage('${page}')"]`).parentElement.classList.add('active');
+        
+        // Update page-specific date display
+        updatePageDate(page);
+        
+        // Close mobile menu on page switch
+        if (window.innerWidth <= 768) {
+            document.getElementById('sidebar').classList.remove('active');
+        }
+        
+        // Page-specific initializations
+        if (page === 'predictions') {
+            updatePredictionSliders();
+        }
+    }
+
+    // Date Functions
+    function updateAllDates() {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const date = new Date().toLocaleDateString('en-US', options);
+        
+        document.getElementById('current-date').textContent = date;
+        document.getElementById('predictions-date').textContent = date;
+        document.getElementById('upload-date').textContent = date;
+        document.getElementById('insights-date').textContent = date;
+        document.getElementById('settings-date').textContent = date;
+    }
+
+    function updatePageDate(page) {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const date = new Date().toLocaleDateString('en-US', options);
+        document.getElementById(`${page}-date`).textContent = date;
+    }
+
+    // Auto-refresh setup
+    function setupAutoRefresh() {
+        const autoRefreshCheckbox = document.getElementById('auto-refresh');
+        const refreshIntervalSelect = document.getElementById('refresh-interval');
+        
+        let refreshInterval;
+        
+        function setupRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            
+            if (autoRefreshCheckbox.checked) {
+                const minutes = parseInt(refreshIntervalSelect.value) || 30;
+                refreshInterval = setInterval(() => {
+                    if (currentPage === 'dashboard') {
+                        loadPredictions();
+                    } else if (currentPage === 'insights') {
+                        loadInsights();
+                    }
+                    showToast('Data refreshed automatically', 'info');
+                }, minutes * 60 * 1000);
+            }
+        }
+        
+        autoRefreshCheckbox.addEventListener('change', setupRefresh);
+        refreshIntervalSelect.addEventListener('change', setupRefresh);
+        
+        // Initial setup
+        setupRefresh();
     }
 
     // Debug helper
     window.dashboardDebug = {
-        endpoint: API_ENDPOINT,
+        endpoints: API_ENDPOINTS,
         properties: () => properties,
+        insights: () => insightsData,
         testConnection: checkAPIConnection,
-        reloadData: loadInitialData,
-        updateCharts: initializeCharts,
+        refreshPredictions: loadPredictions,
+        refreshInsights: loadInsights,
         switchPage: switchPage
     };
     
-    console.log('Dashboard JS loaded. Type "dashboardDebug" in console for debugging tools.');
+    console.log('Dashboard initialized. Type "dashboardDebug" in console for debugging tools.');
 </script>
 </body>
 </html>
