@@ -278,61 +278,7 @@ def Data_input_form(request):
 
 # apis
 def get_market_insights(request):
-    """Api endpoints for market insights data"""
-    try:
-        model = HousePriceModel()
-        insights = {
-            'avg_price_trend': '+5.2%',
-            'days_on_market': 42,
-            'top_neighborhoods': [  
-                {'name': 'NoRidge', 'avg_price': 750000},
-                {'name': 'StoneBr', 'avg_price': 680000},
-                {'name': 'NridgHt', 'avg_price': 680000}  
-            ],
-            'feature_impact': [  
-                {'feature': "OverallQual", 'impact': 0.85},  
-                {'feature': "GrLivArea", 'impact': 0.76},  
-                {'feature': "GarageCars", 'impact': 0.68}  
-            ],
-            'model_metrics': {
-                'accuracy': 91.5,
-                'error_margin': 3.2,
-                'r2_score': 0.89
-            },
-            'seasonal_trends': [
-                {'month': 'Jan', 'avg_price': 280000},
-                {'month': 'Feb', 'avg_price': 285000},
-                {'month': 'Mar', 'avg_price': 295000},
-                {'month': 'Apr', 'avg_price': 305000},
-                {'month': 'May', 'avg_price': 315000},
-                {'month': 'Jun', 'avg_price': 325000},
-                {'month': 'Jul', 'avg_price': 320000},
-                {'month': 'Aug', 'avg_price': 310000},
-                {'month': 'Sep', 'avg_price': 300000},
-                {'month': 'Oct', 'avg_price': 290000},
-                {'month': 'Nov', 'avg_price': 285000},
-                {'month': 'Dec', 'avg_price': 280000}
-            ],
-            'property_distribution': [
-                {'type': 'Single Family', 'percentage': 45},
-                {'type': 'Townhouse', 'percentage': 25},
-                {'type': 'Condo', 'percentage': 15},
-                {'type': 'Multi-Family', 'percentage': 10},
-                {'type': 'Luxury', 'percentage': 5}
-            ]
-        }
-        
-        return JsonResponse({
-            'success': True,
-            'insights': insights,
-            'timestamp': datetime.now().isoformat()
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
+    pass 
         
         
 @csrf_exempt
